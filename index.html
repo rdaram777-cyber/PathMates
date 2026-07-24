@@ -611,20 +611,35 @@
       alert(message);
     }
 
-    function findExperience() {
-      const input = document.getElementById("goalInput");
-      const value = input.value.trim();
+    async function findExperience() {
+        const input = document.getElementById("goalInput");
+          const value = input.value.trim();
 
-      if (!value) {
-        input.focus();
-        alert("Tell us what you want to do first.");
-        return;
-      }
+            if (!value) {
+                input.focus();
+                    alert("Tell us what you want to do first.");
+                        return;
+                          }
 
-      alert(
-        "Great goal: " + value +
-        "\\n\\nSmart experience matching will be connected in the next build stage."
-      );
+                            const { data, error } = await supabaseClient
+                                .from("posts")
+                                    .select("*")
+                                        .or(`title.ilike.%${value}%,content.ilike.%${value}%,category.ilike.%${value}%`);
+
+                                          if (error) {
+                                              alert("Error: " + error.message);
+                                                  return;
+                                                    }
+
+                                                      if (!data || data.length === 0) {
+                                                          alert("No matching PathMate found yet.");
+                                                              return;
+                                                                }
+
+                                                                  alert(
+                                                                      "Found " + data.length + " matching PathMate(s)!"
+                                                                        );
+                                                                        }
     }
   </script>
 
