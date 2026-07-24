@@ -600,6 +600,9 @@
   </footer>
 
   <script>
+    const SUPABASE_URL = 'https://qwbuqngstnwtbcigewtw.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_z8q6kdVb9VD5h1QcI1rLgw_oFWmMS66';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     function scrollToSection(id) {
       document.getElementById(id).scrollIntoView({ behavior: "smooth" });
     }
