@@ -645,14 +645,7 @@
         <small>${post.category || ""}</small>
     </div>
 `).join("");
-
-const resultBox = document.getElementById("results");
-
-if (resultBox) {
-    resultBox.innerHTML = results;
-} else {
-    alert("Found " + data.length + " matching experiences!");
-  }
+document.getElementById("results").innerHTML = results;
   </script>
 
 </body>
