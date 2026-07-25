@@ -600,44 +600,46 @@
   </footer>
 
   <script>
-    const SUPABASE_URL = 'https://qwbuqngstnwtbcigewtw.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_z8q6kdVb9VD5h1QcI1rLgw_oFWmMS66';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    function scrollToSection(id) {
-      document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+  const SUPABASE_URL = 'https://qwbuqngstnwtbcigewtw.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_z8q6kdVb9VD5h1QcI1rLgw_oFWmMS66';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function scrollToSection(id) {
+    document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+  }
+
+  function showMessage(message) {
+    alert(message);
+  }
+
+  async function findExperience() {
+    const input = document.getElementById("goalInput");
+    const value = input.value.trim();
+
+    if (!value) {
+      input.focus();
+      alert("Tell us what you want to do first.");
+      return;
     }
 
-    function showMessage(message) {
-      alert(message);
+    const { data, error } = await supabaseClient
+      .from("posts")
+      .select("*")
+      .or(`title.ilike.%${value}%,content.ilike.%${value}%`);
+
+    if (error) {
+      alert("Error: " + error.message);
+      return;
     }
 
-        async function findExperience() {
-                const input = document.getElementById("goalInput");
-                      const value = input.value.trim();
-
-                            if (!value) {
-                                    input.focus();
-                                            alert("Tell us what you want to do first.");
-                                                    return;
-                                                          }
-
-                                                                const { data, error } = await supabaseClient
-                                                                        .from("posts")
-                                                                                .select("*")
-                                                                                        .or(`title.ilike.%${value}%,content.ilike.%${value}%`);
-
-                                                                                              if (error) {
-                                                                                                      alert("Error: " + error.message);
-                                                                                                              return;
-                                                                                                                    }
-
-                                                                                                                          if (!data || data.length === 0) {
-                                                                                                                                  alert("No matching experiences found yet.");
-                                                                                                                                          return;
-                                                                                                                                                }
-
-                                                                                                                                                            alert("Found " + data.length + " matching experiences!");
+    if (!data || data.length === 0) {
+      alert("No matching experiences found yet.");
+      return;
     }
+
+    alert("Found " + data.length + " matching experiences!");
+  }
+  </script>
   </script>
 
 </body>
