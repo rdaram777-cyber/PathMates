@@ -637,6 +637,19 @@
       return;
     }
 
+    const results = data.map(post => `
+    <div style="background:white; padding:20px; margin-top:20px; border-radius:12px;">
+        <h3>${post.title || "Experience"}</h3>
+        <p>${post.content || ""}</p>
+        <small>${post.category || ""}</small>
+    </div>
+`).join("");
+
+const resultBox = document.getElementById("results");
+
+if (resultBox) {
+    resultBox.innerHTML = results;
+} else {
     alert("Found " + data.length + " matching experiences!");
   }
   </script>
