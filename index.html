@@ -665,6 +665,31 @@ document.getElementById("results").innerHTML = results;
     return;
   }
 
+  const resultsBox = document.getElementById("results");
+
+  resultsBox.innerHTML = `
+    <div class="experience-card" style="margin-top:20px;">
+      <span class="tag">${data.category || "Experience"}</span>
+      <h2>${data.title || "Experience"}</h2>
+      <p>${data.content || ""}</p>
+      <div class="profile">
+        <div class="avatar">
+          ${(data.user_name || "P").charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <strong>${data.user_name || "PathMate"}</strong>
+          <small>Shared experience</small>
+        </div>
+      </div>
+    </div>
+  `;
+
+  resultsBox.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+    }
+
   alert(
     "Title: " + (data.title || "") +
     "\n\n" +
