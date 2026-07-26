@@ -606,7 +606,11 @@
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   function scrollToSection(id) {
-    document.getElementById(id).scrollIntoView({ behavior: "smooth" });
+    const section = document.getElementById(id);
+
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth" });
+    }
   }
 
   function showMessage(message) {
@@ -615,6 +619,8 @@
 
   async function findExperience() {
     const input = document.getElementById("goalInput");
+    const resultsBox = document.getElementById("results");
+
     const value = input.value.trim();
 
     if (!value) {
@@ -623,82 +629,118 @@
       return;
     }
 
+    if (!resultsBox) {
+      alert("Results area is missing from the page.");
+      return;
+    }
+
+    resultsBox.innerHTML = "<p>Searching...</p>";
+
     const { data, error } = await supabaseClient
       .from("posts")
       .select("*")
       .or(`title.ilike.%${value}%,content.ilike.%${value}%`);
 
     if (error) {
+      resultsBox.innerHTML = "";
       alert("Error: " + error.message);
       return;
     }
 
     if (!data || data.length === 0) {
-      alert("No matching experiences found yet.");
+      resultsBox.innerHTML = `
+        <div class="experience-card" style="margin-top:20px;">
+          <h3>No matching experiences found yet.</h3>
+          <p>Try searching for another goal or experience.</p>
+        </div>
+      `;
       return;
     }
 
     const results = data.map(post => `
-  <div class="experience-card" style="margin-top:20px;">
-    <span class="tag">${post.category || "Experience"}</span>
-    <h3>${post.title || "Experience"}</h3>
-    <p>${post.content || ""}</p>
-    <small>${post.user_name || "PathMate"}</small>
-    <br><br>
-    <button class="btn btn-primary" onclick="viewExperience(${post.id})">
-      View experience
-    </button>
-  </div>
-`).join("");
+      <div class="experience-card" style="margin-top:20px;">
+        <span class="tag">${post.category || "Experience"}</span>
 
-document.getElementById("results").innerHTML = results;
-  }
-    async function viewExperience(id) {
-  const { data, error } = await supabaseClient
-    .from("posts")
-    .select("*")
-    .eq("id", id)
-    .single();
+        <h3>${post.title || "Experience"}</h3>
 
-  if (error) {
-    alert("Error: " + error.message);
-    return;
-  }
+        <p>${post.content || ""}</p>
 
-  const resultsBox = document.getElementById("results");
+        <small>${post.user_name || "PathMate"}</small>
 
-  resultsBox.innerHTML = `
-    <div class="experience-card" style="margin-top:20px;">
-      <span class="tag">${data.category || "Experience"}</span>
-      <h2>${data.title || "Experience"}</h2>
-      <p>${data.content || ""}</p>
-      <div class="profile">
-        <div class="avatar">
-          ${(data.user_name || "P").charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <strong>${data.user_name || "PathMate"}</strong>
-          <small>Shared experience</small>
-        </div>
+        <br><br>
+
+        <button
+          class="btn btn-primary"
+          onclick="viewExperience('${post.id}')">
+          View experience
+        </button>
       </div>
-    </div>
-  `;
+    `).join("");
 
-  resultsBox.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
+    resultsBox.innerHTML = results;
+
+    resultsBox.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  async function viewExperience(id) {
+    const { data, error } = await supabaseClient
+      .from("posts")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      alert("Error: " + error.message);
+      return;
     }
 
-  alert(
-    "Title: " + (data.title || "") +
-    "\n\n" +
-    "Experience: " + (data.content || "") +
-    "\n\n" +
-    "Category: " + (data.category || "")
-  );
-    }
-</script>
+    const resultsBox = document.getElementById("results");
+
+    resultsBox.innerHTML = `
+      <div class="experience-card" style="margin-top:20px;">
+
+        <span class="tag">
+          ${data.category || "Experience"}
+        </span>
+
+        <h2>
+          ${data.title || "Experience"}
+        </h2>
+
+        <p>
+          ${data.content || ""}
+        </p>
+
+        <div class="profile">
+
+          <div class="avatar">
+            ${(data.user_name || "P").charAt(0).toUpperCase()}
+          </div>
+
+          <div>
+            <strong>
+              ${data.user_name || "PathMate"}
+            </strong>
+
+            <small>
+              Shared experience
+            </small>
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    resultsBox.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+  </script>
 
 </body>
 </html>
