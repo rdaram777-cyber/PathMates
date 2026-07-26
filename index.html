@@ -639,14 +639,40 @@
     }
 
     const results = data.map(post => `
-    <div style="background:white; padding:20px; margin-top:20px; border-radius:12px;">
-        <h3>${post.title || "Experience"}</h3>
-        <p>${post.content || ""}</p>
-        <small>${post.category || ""}</small>
-    </div>
+  <div class="experience-card" style="margin-top:20px;">
+    <span class="tag">${post.category || "Experience"}</span>
+    <h3>${post.title || "Experience"}</h3>
+    <p>${post.content || ""}</p>
+    <small>${post.user_name || "PathMate"}</small>
+    <br><br>
+    <button class="btn btn-primary" onclick="viewExperience(${post.id})">
+      View experience
+    </button>
+  </div>
 `).join("");
-    document.getElementById("results").innerHTML = results;
+
+document.getElementById("results").innerHTML = results;
   }
+    async function viewExperience(id) {
+  const { data, error } = await supabaseClient
+    .from("posts")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    alert("Error: " + error.message);
+    return;
+  }
+
+  alert(
+    "Title: " + (data.title || "") +
+    "\n\n" +
+    "Experience: " + (data.content || "") +
+    "\n\n" +
+    "Category: " + (data.category || "")
+  );
+    }
 </script>
 
 </body>
