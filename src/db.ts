@@ -1,22 +1,10 @@
 import { neon } from "@neondatabase/serverless";
+import { createServerClient } from "@supabase/ssr";
+import type { Database } from "./lib/database.types";
 
 /**
- * Server-only handle to the team's database (Neon serverless Postgres over HTTP).
- * The connection string comes from `DATABASE_URL`, which the owner connects via
- * the database card and which is injected into the sandbox and passed to the live
- * host on publish. Resolved lazily (per call, not at module load) so the site
- * still builds and serves before a database is connected — the error only
- * surfaces if a query actually runs without `DATABASE_URL`.
- *
- * Use it only inside a `createServerFn()` handler or an `src/routes/api/*` route
- * (never client code):
- *
- *   const getPosts = createServerFn().handler(async () => {
- *     const rows = await sql()`select id, title, created_at from posts`;
- *     // Coerce non-primitive columns (timestamps are JS Dates) to strings before
- *     // returning to the client, or React will refuse to render them:
- *     return rows.map((r) => ({ ...r, created_at: String(r.created_at) }));
- *   });
+ * Neon serverless Postgres helper — keep for existing Neon usage.
+ * Requires DATABASE_URL env var.
  */
 export const sql = () => {
   const url = process.env.DATABASE_URL;
@@ -27,3 +15,31 @@ export const sql = () => {
   }
   return neon(url);
 };
+
+/**
+ * Supabase server-side client factory.
+ * Uses VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (user-scoped).
+ * For admin operations, pass { useServiceRole: true } — requires
+ * SUPABASE_SERVICE_ROLE_KEY env var.
+ */
+export function createSupabaseClient(opts?: { useServiceRole?: boolean }) {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = opts?.useServiceRole
+    ? process.env.SUPABASE_SERVICE_ROLE_KEY
+    : process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!url) throw new Error("Missing VITE_SUPABASE_URL");
+  if (!key) {
+    const which = opts?.useServiceRole ? "SUPABASE_SERVICE_ROLE_KEY" : "VITE_SUPABASE_ANON_KEY";
+    throw new Error(`Missing ${which}`);
+  }
+
+  return createServerClient<Database>(url, key, {
+    cookies: {
+      getAll() {
+        return [];
+      },
+      setAll() {},
+    },
+  });
+}

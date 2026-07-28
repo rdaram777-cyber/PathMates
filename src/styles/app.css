@@ -1,8 +1,83 @@
 @import "tailwindcss";
 
 @layer base {
-  html,
+  :root {
+    --bg: #fbfaf7;
+    --card: #fff;
+    --text: #17202a;
+    --muted: #667085;
+    --line: #e8e5df;
+    --accent: #e97945;
+    --dark: #1e2933;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+    @apply antialiased;
+    margin: 0;
+    font-family:
+      "Inter",
+      Arial,
+      sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 25px;
+  }
+
+  .search-box {
+    max-width: 720px;
+    margin: 25px auto 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 8px;
+    display: flex;
+  }
+
+  @media (max-width: 800px) {
+    .nav-links {
+      display: none;
+    }
+    .grid.two-col,
+    .grid.three-col,
+    .steps.three-col {
+      grid-template-columns: 1fr;
+    }
+    .heading {
+      display: block;
+    }
+    .heading p {
+      margin-top: 10px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .search-box {
+      display: block;
+    }
+    .search-box input {
+      width: 100%;
+    }
+    .search-box a,
+    .search-box button {
+      width: 100%;
+      margin-top: 6px;
+      display: block;
+      text-align: center;
+    }
   }
 }
