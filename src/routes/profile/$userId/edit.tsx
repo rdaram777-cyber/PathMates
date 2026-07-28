@@ -19,7 +19,7 @@ const getProfile = createServerFn({ method: "GET" })
     return profile;
   });
 
-export const Route = createFileRoute("/profile/edit")({
+export const Route = createFileRoute("/profile/$userId/edit")({
   loader: ({ params }) => getProfile(params.userId),
   component: EditProfile,
 });
