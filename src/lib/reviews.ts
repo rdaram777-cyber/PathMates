@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createSupabaseClient } from "~/db";
 import type { Database } from "~/lib/database.types";
+import { createNotification } from "~/lib/notifications";
 
 // ---- Types ----
 
@@ -154,6 +155,20 @@ export const createReview = createServerFn({ method: "POST" })
 
     // Update profile rating
     await recalculateRatingInternal(sb, booking.pathmate_id);
+
+    // Notify the PathMate about the review
+    try {
+      const reviewerName = user.user_metadata?.full_name || user.email || "An explorer";
+      await createNotification({
+        userId: booking.pathmate_id,
+        type: "new_review",
+        title: "New review received",
+        message: `${reviewerName} left you a ${data.rating}-star review.`,
+        link: `/profile/$userId`,
+      });
+    } catch {
+      // Don't fail the review if notification fails
+    }
 
     return { id: review.id };
   });
