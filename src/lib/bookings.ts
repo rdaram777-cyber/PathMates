@@ -3,6 +3,7 @@ import { createSupabaseClient } from "~/db";
 import {
   calculateCommission,
   createCheckoutSession,
+  getCommissionPercent,
   verifyStripeSession,
 } from "~/lib/stripe";
 import type { Database } from "~/lib/database.types";
@@ -136,9 +137,11 @@ export const createBooking = createServerFn({ method: "POST" })
     } = await sb.auth.getUser();
     if (!user) throw new Error("You must be logged in to book a call.");
 
-    // Calculate commission
+    // Calculate commission (dynamic from DB)
+    const commissionPercent = await getCommissionPercent();
     const { platformFee, pathmateEarnings } = calculateCommission(
       data.amount_cents,
+      commissionPercent,
     );
 
     // Insert booking with pending status

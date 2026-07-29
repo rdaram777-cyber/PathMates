@@ -216,6 +216,23 @@ export interface Database {
           created_at?: string;
         };
       };
+      platform_settings: {
+        Row: {
+          key: string;
+          value: string;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          value: string;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          value?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
