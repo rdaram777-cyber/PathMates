@@ -110,6 +110,16 @@ function AppShell() {
             {loading ? null : user ? (
               <>
                 <Link
+                  to="/bookings"
+                  style={{
+                    color: "var(--muted)",
+                    textDecoration: "none",
+                    fontWeight: 500,
+                  }}
+                >
+                  My Bookings
+                </Link>
+                <Link
                   to="/profile/$userId"
                   params={{ userId: user.id }}
                   style={{

@@ -93,9 +93,22 @@ function ExperienceDetailPage() {
         </div>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
-          <button disabled style={{ border: "none", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "#ccc", color: "#888", cursor: "not-allowed", fontSize: "inherit", font: "inherit" }} title="Coming in Phase 3">
-            Book a call (coming soon)
-          </button>
+          {user ? (
+            <Link
+              to="/book/$experienceId"
+              params={{ experienceId: experience.id }}
+              style={{ border: "none", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "var(--accent)", color: "#fff", cursor: "pointer", textDecoration: "none", fontSize: "inherit", display: "inline-block" }}
+            >
+              Book a call
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              style={{ border: "none", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "var(--accent)", color: "#fff", cursor: "pointer", textDecoration: "none", fontSize: "inherit", display: "inline-block" }}
+            >
+              Log in to book a call
+            </Link>
+          )}
 
           {isOwner && (
             <>

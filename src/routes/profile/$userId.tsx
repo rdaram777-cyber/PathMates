@@ -125,9 +125,25 @@ function ProfileView() {
                   ? "Admin"
                   : "Explorer"}
             </span>
+            {profile.hourly_rate ? (
+              <span
+                style={{
+                  display: "inline-block",
+                  background: "#fff5f0",
+                  borderRadius: "999px",
+                  padding: "6px 9px",
+                  fontSize: ".78rem",
+                  fontWeight: 700,
+                  color: "var(--accent)",
+                }}
+              >
+                ${(profile.hourly_rate / 100).toFixed(2)}/hr
+              </span>
+            ) : null}
           </div>
 
           {isOwn && (
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <Link
               to="/profile/$userId/edit"
               params={{ userId: profile.id }}
@@ -144,6 +160,23 @@ function ProfileView() {
             >
               Edit Profile
             </Link>
+            <Link
+              to="/profile/$userId/availability"
+              params={{ userId: profile.id }}
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: "12px",
+                padding: "10px 16px",
+                fontWeight: 700,
+                background: "transparent",
+                color: "var(--text)",
+                textDecoration: "none",
+                fontSize: ".9rem",
+              }}
+            >
+              Availability
+            </Link>
+            </div>
           )}
         </div>
 

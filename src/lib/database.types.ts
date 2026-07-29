@@ -14,10 +14,12 @@ export interface Database {
           id: string;
           full_name: string | null;
           bio: string | null;
+          bio_short: string | null;
           avatar_url: string | null;
           languages: string[] | null;
           skills: string[] | null;
           role: "explorer" | "pathmate" | "admin";
+          hourly_rate: number;
           created_at: string;
           updated_at: string;
         };
@@ -25,10 +27,12 @@ export interface Database {
           id: string;
           full_name?: string | null;
           bio?: string | null;
+          bio_short?: string | null;
           avatar_url?: string | null;
           languages?: string[] | null;
           skills?: string[] | null;
           role?: "explorer" | "pathmate" | "admin";
+          hourly_rate?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -36,10 +40,12 @@ export interface Database {
           id?: string;
           full_name?: string | null;
           bio?: string | null;
+          bio_short?: string | null;
           avatar_url?: string | null;
           languages?: string[] | null;
           skills?: string[] | null;
           role?: "explorer" | "pathmate" | "admin";
+          hourly_rate?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -91,6 +97,85 @@ export interface Database {
           category_id?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      bookings: {
+        Row: {
+          id: string;
+          explorer_id: string;
+          pathmate_id: string;
+          experience_id: string | null;
+          scheduled_at: string;
+          duration_minutes: number;
+          amount_cents: number;
+          platform_fee_cents: number;
+          pathmate_earnings_cents: number;
+          stripe_session_id: string | null;
+          stripe_payment_status: string;
+          meeting_url: string | null;
+          status: "pending" | "paid" | "completed" | "cancelled" | "refunded";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          explorer_id: string;
+          pathmate_id: string;
+          experience_id?: string | null;
+          scheduled_at: string;
+          duration_minutes?: number;
+          amount_cents: number;
+          platform_fee_cents: number;
+          pathmate_earnings_cents: number;
+          stripe_session_id?: string | null;
+          stripe_payment_status?: string;
+          meeting_url?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          explorer_id?: string;
+          pathmate_id?: string;
+          experience_id?: string | null;
+          scheduled_at?: string;
+          duration_minutes?: number;
+          amount_cents?: number;
+          platform_fee_cents?: number;
+          pathmate_earnings_cents?: number;
+          stripe_session_id?: string | null;
+          stripe_payment_status?: string;
+          meeting_url?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      availability_slots: {
+        Row: {
+          id: string;
+          user_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          day_of_week?: number;
+          start_time?: string;
+          end_time?: string;
+          created_at?: string;
         };
       };
     };
