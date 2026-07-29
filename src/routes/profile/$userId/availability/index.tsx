@@ -6,6 +6,9 @@ import {
   addAvailabilitySlot,
   deleteAvailabilitySlot,
 } from "~/lib/bookings";
+import { StarRating } from "~/components/StarRating";
+import { getPathmateRating } from "~/lib/reviews";
+import type { PathmateRating } from "~/lib/reviews";
 
 export const Route = createFileRoute("/profile/$userId/availability/")({
   component: AvailabilityPage,
@@ -43,8 +46,13 @@ function AvailabilityPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [ratingData, setRatingData] = useState<PathmateRating | null>(null);
 
   const isOwn = user?.id === userId;
+
+  useEffect(() => {
+    getPathmateRating(userId).then(setRatingData).catch(() => {});
+  }, [userId]);
 
   useEffect(() => {
     if (!isOwn) {
@@ -169,9 +177,36 @@ function AvailabilityPage() {
         >
           Manage Availability
         </h1>
-        <p style={{ color: "var(--muted)", marginBottom: "32px" }}>
+        <p style={{ color: "var(--muted)", marginBottom: "24px" }}>
           Set when you're available for calls. Explorers will see these time slots when booking.
         </p>
+
+        {/* Rating summary */}
+        {ratingData && ratingData.review_count > 0 && (
+          <div
+            style={{
+              padding: "16px 20px",
+              background: "var(--card)",
+              border: "1px solid var(--line)",
+              borderRadius: "14px",
+              marginBottom: "24px",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <strong style={{ display: "block", fontSize: ".95rem", marginBottom: "2px" }}>
+                Your Rating
+              </strong>
+              <StarRating
+                rating={ratingData.avg_rating}
+                count={ratingData.review_count}
+                size="sm"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Add slot form */}
         <form

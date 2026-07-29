@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "~/lib/auth";
+import { StarRatingInline } from "~/components/StarRating";
 import { getExperience } from "~/lib/experiences";
 import {
   getPathmateProfile,
@@ -266,6 +267,9 @@ function BookPage() {
               }}
             >
               ${(hourlyRate / 100).toFixed(2)} / hour
+            </div>
+            <div style={{ marginTop: "4px" }}>
+              <StarRatingInline rating={profile.avg_rating ?? 0} count={profile.review_count ?? 0} />
             </div>
           </div>
         </div>

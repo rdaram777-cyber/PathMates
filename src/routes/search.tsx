@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { searchExperiences, type ExperienceWithDetails } from "~/lib/experiences";
+import { StarRatingInline } from "~/components/StarRating";
 
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, string>) => {
@@ -188,6 +189,9 @@ function ExperienceCard({
       : experience.content;
   const initials = (experience.profiles?.full_name || "P")[0].toUpperCase();
   const categoryName = experience.categories?.name || "Experience";
+  const avgRating = experience.profiles?.avg_rating ?? 0;
+  const reviewCount = experience.profiles?.review_count ?? 0;
+  const isVerified = experience.profiles?.verified ?? false;
 
   return (
     <div className="card">
@@ -251,18 +255,26 @@ function ExperienceCard({
             {initials}
           </div>
           <div>
-            <strong style={{ fontSize: ".95rem" }}>
-              {experience.profiles?.full_name || "PathMate"}
-            </strong>
-            <small
-              style={{
-                display: "block",
-                color: "var(--muted)",
-                fontSize: ".8rem",
-              }}
-            >
-              Shared experience
-            </small>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <strong style={{ fontSize: ".95rem" }}>
+                {experience.profiles?.full_name || "PathMate"}
+              </strong>
+              {isVerified && (
+                <span
+                  style={{
+                    fontSize: ".7rem",
+                    background: "#ecfdf3",
+                    color: "#067647",
+                    borderRadius: "999px",
+                    padding: "2px 6px",
+                    fontWeight: 700,
+                  }}
+                >
+                  ✓
+                </span>
+              )}
+            </div>
+            <StarRatingInline rating={avgRating} count={reviewCount} />
           </div>
         </div>
 
