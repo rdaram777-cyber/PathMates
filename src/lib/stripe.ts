@@ -1,9 +1,11 @@
+import { createServerFn } from "@tanstack/react-start";
+import { createSupabaseClient } from "~/db";
 import Stripe from "stripe";
 
 // ---- Constants ----
 
-/** Platform commission percentage (30%) */
-export const PLATFORM_COMMISSION_PERCENT = 30;
+/** Fallback commission percentage if DB is unreachable */
+export const DEFAULT_COMMISSION_PERCENT = 30;
 
 // ---- Helpers ----
 
@@ -30,16 +32,36 @@ function getStripe(): Stripe {
 
 // ---- Commission Calculation ----
 
-export function calculateCommission(amountCents: number): {
+/** Calculate platform fee and PathMate earnings from a given amount and commission percent */
+export function calculateCommission(
+  amountCents: number,
+  commissionPercent: number,
+): {
   platformFee: number;
   pathmateEarnings: number;
 } {
   const platformFee = Math.round(
-    amountCents * (PLATFORM_COMMISSION_PERCENT / 100),
+    amountCents * (commissionPercent / 100),
   );
   const pathmateEarnings = amountCents - platformFee;
   return { platformFee, pathmateEarnings };
 }
+
+/** Server fn: read the current commission percent from platform_settings, fall back to 30 */
+export const getCommissionPercent = createServerFn({ method: "GET" }).handler(
+  async (): Promise<number> => {
+    const sb = createSupabaseClient();
+    const { data, error } = await sb
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "commission_percent")
+      .maybeSingle();
+
+    if (error || !data) return DEFAULT_COMMISSION_PERCENT;
+    const parsed = parseInt(data.value, 10);
+    return isNaN(parsed) ? DEFAULT_COMMISSION_PERCENT : parsed;
+  },
+);
 
 // ---- Booking Data Types ----
 
