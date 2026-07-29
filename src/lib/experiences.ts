@@ -6,7 +6,13 @@ import type { Database } from "~/lib/database.types";
 
 export type ExperienceWithDetails =
   Database["public"]["Tables"]["experiences"]["Row"] & {
-    profiles?: { full_name: string | null; avatar_url: string | null } | null;
+    profiles?: {
+      full_name: string | null;
+      avatar_url: string | null;
+      avg_rating?: number;
+      review_count?: number;
+      verified?: boolean;
+    } | null;
     categories?: { name: string | null; slug: string | null } | null;
   };
 
@@ -20,7 +26,7 @@ export const getExperiences = createServerFn({ method: "GET" }).handler(
     const sb = createSupabaseClient();
     const { data, error } = await sb
       .from("experiences")
-      .select("*, profiles(full_name, avatar_url), categories(name, slug)")
+      .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -35,7 +41,7 @@ export const getExperience = createServerFn({ method: "GET" })
     const sb = createSupabaseClient();
     const { data, error } = await sb
       .from("experiences")
-      .select("*, profiles(full_name, avatar_url), categories(name, slug)")
+      .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
       .eq("id", id)
       .single();
 
@@ -52,7 +58,7 @@ export const searchExperiences = createServerFn({ method: "GET" })
     // Search across title, content, and category name
     const { data, error } = await sb
       .from("experiences")
-      .select("*, profiles(full_name, avatar_url), categories!inner(name, slug)")
+      .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories!inner(name, slug)")
       .or(`title.ilike.${term},content.ilike.${term},categories.name.ilike.${term}`)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -61,7 +67,7 @@ export const searchExperiences = createServerFn({ method: "GET" })
       // Fallback: try searching without category join
       const { data: fallbackData, error: fallbackError } = await sb
         .from("experiences")
-        .select("*, profiles(full_name, avatar_url), categories(name, slug)")
+        .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
         .or(`title.ilike.${term},content.ilike.${term}`)
         .order("created_at", { ascending: false })
         .limit(50);

@@ -20,6 +20,9 @@ export interface Database {
           skills: string[] | null;
           role: "explorer" | "pathmate" | "admin";
           hourly_rate: number;
+          avg_rating: number;
+          review_count: number;
+          verified: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -33,6 +36,9 @@ export interface Database {
           skills?: string[] | null;
           role?: "explorer" | "pathmate" | "admin";
           hourly_rate?: number;
+          avg_rating?: number;
+          review_count?: number;
+          verified?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -46,6 +52,9 @@ export interface Database {
           skills?: string[] | null;
           role?: "explorer" | "pathmate" | "admin";
           hourly_rate?: number;
+          avg_rating?: number;
+          review_count?: number;
+          verified?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -175,6 +184,35 @@ export interface Database {
           day_of_week?: number;
           start_time?: string;
           end_time?: string;
+          created_at?: string;
+        };
+      };
+      reviews: {
+        Row: {
+          id: string;
+          booking_id: string;
+          reviewer_id: string;
+          pathmate_id: string;
+          rating: number;
+          content: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          reviewer_id: string;
+          pathmate_id: string;
+          rating: number;
+          content?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          reviewer_id?: string;
+          pathmate_id?: string;
+          rating?: number;
+          content?: string | null;
           created_at?: string;
         };
       };

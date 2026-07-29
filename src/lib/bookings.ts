@@ -324,11 +324,14 @@ export const getPathmateProfile = createServerFn({ method: "GET" })
       avatar_url: string | null;
       bio_short: string | null;
       hourly_rate: number;
+      avg_rating: number;
+      review_count: number;
+      verified: boolean;
     } | null> => {
       const sb = createSupabaseClient();
       const { data, error } = await sb
         .from("profiles")
-        .select("id, full_name, avatar_url, bio_short, hourly_rate")
+        .select("id, full_name, avatar_url, bio_short, hourly_rate, avg_rating, review_count, verified")
         .eq("id", userId)
         .single();
 
