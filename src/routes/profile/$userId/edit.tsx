@@ -31,6 +31,8 @@ function EditProfile() {
 
   const [fullName, setFullName] = useState(profile.full_name ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
+  const [bioShort, setBioShort] = useState(profile.bio_short ?? "");
+  const [hourlyRate, setHourlyRate] = useState(profile.hourly_rate ?? 5000);
   const [languagesInput, setLanguagesInput] = useState(
     (profile.languages ?? []).join(", "),
   );
@@ -99,6 +101,8 @@ function EditProfile() {
         .update({
           full_name: fullName.trim() || null,
           bio: bio.trim() || null,
+          bio_short: bioShort.trim() || null,
+          hourly_rate: hourlyRate,
           languages,
           skills,
           avatar_url: avatarUrl,

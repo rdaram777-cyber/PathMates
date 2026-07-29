@@ -1,0 +1,338 @@
+import { createServerFn } from "@tanstack/react-start";
+import { createSupabaseClient } from "~/db";
+import {
+  calculateCommission,
+  createCheckoutSession,
+  verifyStripeSession,
+} from "~/lib/stripe";
+import type { Database } from "~/lib/database.types";
+
+// ---- Types ----
+
+export type Booking = Database["public"]["Tables"]["bookings"]["Row"];
+export type AvailabilitySlot =
+  Database["public"]["Tables"]["availability_slots"]["Row"];
+
+export interface BookingWithDetails extends Booking {
+  explorer?: { full_name: string | null; avatar_url: string | null } | null;
+  pathmate?: { full_name: string | null; avatar_url: string | null } | null;
+}
+
+// ---- Availability ----
+
+export const getPathmateAvailability = createServerFn({ method: "GET" })
+  .validator((pathmateId: string) => pathmateId)
+  .handler(async ({ data: pathmateId }): Promise<AvailabilitySlot[]> => {
+    const sb = createSupabaseClient();
+    const { data, error } = await sb
+      .from("availability_slots")
+      .select("*")
+      .eq("user_id", pathmateId)
+      .order("day_of_week", { ascending: true })
+      .order("start_time", { ascending: true });
+
+    if (error) return [];
+    return (data as AvailabilitySlot[]) ?? [];
+  });
+
+export const getMyAvailability = createServerFn({ method: "GET" }).handler(
+  async (): Promise<AvailabilitySlot[]> => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in.");
+
+    const { data, error } = await sb
+      .from("availability_slots")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("day_of_week", { ascending: true })
+      .order("start_time", { ascending: true });
+
+    if (error) return [];
+    return (data as AvailabilitySlot[]) ?? [];
+  },
+);
+
+export const addAvailabilitySlot = createServerFn({ method: "POST" })
+  .validator(
+    (data: { day_of_week: number; start_time: string; end_time: string }) =>
+      data,
+  )
+  .handler(async ({ data }) => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in.");
+
+    // Validate times
+    if (data.start_time >= data.end_time) {
+      throw new Error("Start time must be before end time.");
+    }
+
+    const { data: inserted, error } = await sb
+      .from("availability_slots")
+      .insert({
+        user_id: user.id,
+        day_of_week: data.day_of_week,
+        start_time: data.start_time,
+        end_time: data.end_time,
+      })
+      .select("id")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { id: inserted.id };
+  });
+
+export const deleteAvailabilitySlot = createServerFn({ method: "POST" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in.");
+
+    const { data: existing } = await sb
+      .from("availability_slots")
+      .select("user_id")
+      .eq("id", id)
+      .single();
+
+    if (!existing || existing.user_id !== user.id) {
+      throw new Error("You can only delete your own availability slots.");
+    }
+
+    const { error } = await sb
+      .from("availability_slots")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
+// ---- Bookings ----
+
+export const createBooking = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      pathmate_id: string;
+      experience_id?: string | null;
+      scheduled_at: string;
+      duration_minutes: number;
+      amount_cents: number;
+      pathmate_name: string;
+      experience_title?: string;
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in to book a call.");
+
+    // Calculate commission
+    const { platformFee, pathmateEarnings } = calculateCommission(
+      data.amount_cents,
+    );
+
+    // Insert booking with pending status
+    const { data: booking, error: bookingError } = await sb
+      .from("bookings")
+      .insert({
+        explorer_id: user.id,
+        pathmate_id: data.pathmate_id,
+        experience_id: data.experience_id ?? null,
+        scheduled_at: data.scheduled_at,
+        duration_minutes: data.duration_minutes,
+        amount_cents: data.amount_cents,
+        platform_fee_cents: platformFee,
+        pathmate_earnings_cents: pathmateEarnings,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (bookingError) throw new Error(bookingError.message);
+
+    // Create Stripe checkout session
+    const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    const { checkoutUrl } = await createCheckoutSession({
+      bookingId: booking.id,
+      explorerId: user.id,
+      pathmateId: data.pathmate_id,
+      pathmateName: data.pathmate_name,
+      experienceId: data.experience_id ?? null,
+      experienceTitle: data.experience_title,
+      amountCents: data.amount_cents,
+      platformFeeCents: platformFee,
+      pathmateEarningsCents: pathmateEarnings,
+      successUrl: `${siteUrl}/bookings/${booking.id}/success`,
+      cancelUrl: `${siteUrl}/experiences/${data.experience_id ?? ""}`,
+      durationMinutes: data.duration_minutes,
+    });
+
+    // Update booking with Stripe session ID
+    await sb
+      .from("bookings")
+      .update({ stripe_session_id: checkoutUrl.split("/").pop()?.split("?")[0] })
+      .eq("id", booking.id);
+
+    return { bookingId: booking.id, checkoutUrl };
+  });
+
+export const getBooking = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }): Promise<BookingWithDetails | null> => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in.");
+
+    const { data, error } = await sb
+      .from("bookings")
+      .select("*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)")
+      .eq("id", id)
+      .single();
+
+    if (error || !data) return null;
+
+    // Check access: must be either explorer or pathmate
+    const booking = data as any;
+    if (booking.explorer_id !== user.id && booking.pathmate_id !== user.id) {
+      return null;
+    }
+
+    return booking as BookingWithDetails;
+  });
+
+export const confirmBooking = createServerFn({ method: "POST" })
+  .validator((bookingId: string) => bookingId)
+  .handler(async ({ data: bookingId }) => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in.");
+
+    // Verify the booking belongs to the user
+    const { data: booking } = await sb
+      .from("bookings")
+      .select("*")
+      .eq("id", bookingId)
+      .eq("explorer_id", user.id)
+      .single();
+
+    if (!booking) throw new Error("Booking not found.");
+
+    // If no stripe session ID, we can't verify
+    if (!booking.stripe_session_id) {
+      throw new Error("No Stripe session found for this booking.");
+    }
+
+    // Verify Stripe payment
+    const { paymentStatus } = await verifyStripeSession(
+      booking.stripe_session_id,
+    );
+
+    if (paymentStatus !== "paid") {
+      throw new Error("Payment has not been completed yet.");
+    }
+
+    // Generate meeting URL
+    const meetingUrl = `/call/${bookingId}`;
+
+    // Update booking
+    const { error } = await sb
+      .from("bookings")
+      .update({
+        stripe_payment_status: "paid",
+        status: "paid",
+        meeting_url: meetingUrl,
+      })
+      .eq("id", bookingId);
+
+    if (error) throw new Error(error.message);
+    return { success: true, meetingUrl };
+  });
+
+export const getUserBookings = createServerFn({ method: "GET" }).handler(
+  async (): Promise<BookingWithDetails[]> => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in.");
+
+    // Use admin client to query across both roles
+    // Since RLS only allows select by explorer_id OR pathmate_id,
+    // we need to handle this with two queries
+    const { data: asExplorer, error: explorerErr } = await sb
+      .from("bookings")
+      .select(
+        "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",
+      )
+      .eq("explorer_id", user.id)
+      .order("scheduled_at", { ascending: false });
+
+    const { data: asPathmate, error: pathmateErr } = await sb
+      .from("bookings")
+      .select(
+        "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",
+      )
+      .eq("pathmate_id", user.id)
+      .order("scheduled_at", { ascending: false });
+
+    const all = [
+      ...((asExplorer as any[]) ?? []),
+      ...((asPathmate as any[]) ?? []),
+    ];
+
+    // Deduplicate and sort
+    const seen = new Set<string>();
+    const unique = all.filter((b) => {
+      if (seen.has(b.id)) return false;
+      seen.add(b.id);
+      return true;
+    });
+
+    unique.sort(
+      (a, b) =>
+        new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime(),
+    );
+
+    return unique as BookingWithDetails[];
+  },
+);
+
+// ---- Get PathMate profile with rate ----
+
+export const getPathmateProfile = createServerFn({ method: "GET" })
+  .validator((userId: string) => userId)
+  .handler(
+    async ({
+      data: userId,
+    }): Promise<{
+      id: string;
+      full_name: string | null;
+      avatar_url: string | null;
+      bio_short: string | null;
+      hourly_rate: number;
+    } | null> => {
+      const sb = createSupabaseClient();
+      const { data, error } = await sb
+        .from("profiles")
+        .select("id, full_name, avatar_url, bio_short, hourly_rate")
+        .eq("id", userId)
+        .single();
+
+      if (error || !data) return null;
+      return data as any;
+    },
+  );
