@@ -1,29 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { useAuth } from "~/lib/auth";
-import { createSupabaseClient } from "~/db";
-import type { Database } from "~/lib/database.types";
-
-type Experience = Database["public"]["Tables"]["experiences"]["Row"] & {
-  profiles?: { full_name: string | null } | null;
-  categories?: { name: string | null } | null;
-};
-
-const getExperiences = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = createSupabaseClient();
-  const { data, error } = await sb
-    .from("experiences")
-    .select("*, profiles(full_name), categories(name)")
-    .order("created_at", { ascending: false })
-    .limit(6);
-
-  if (error) {
-    // If table doesn't exist yet, return empty
-    return [] as Experience[];
-  }
-
-  return (data as Experience[]) ?? [];
-});
+import { getExperiences, type ExperienceWithDetails } from "~/lib/experiences";
 
 export const Route = createFileRoute("/")({
   loader: () => getExperiences(),
@@ -31,11 +9,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const experiences = Route.useLoaderData() as Experience[];
+  const experiences = Route.useLoaderData() as ExperienceWithDetails[];
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Demo data fallback if no experiences in DB yet
-  const demos: Experience[] = [
+  const demos: ExperienceWithDetails[] = [
     {
       id: "demo1",
       user_id: "",
@@ -45,8 +25,8 @@ function Home() {
       category_id: null,
       created_at: "",
       updated_at: "",
-      profiles: { full_name: "PathMate" },
-      categories: { name: "Business" },
+      profiles: { full_name: "PathMate", avatar_url: null },
+      categories: { name: "Business", slug: "business" },
     },
     {
       id: "demo2",
@@ -57,8 +37,8 @@ function Home() {
       category_id: null,
       created_at: "",
       updated_at: "",
-      profiles: { full_name: "PathMate" },
-      categories: { name: "Career" },
+      profiles: { full_name: "PathMate", avatar_url: null },
+      categories: { name: "Career", slug: "career" },
     },
     {
       id: "demo3",
@@ -69,13 +49,27 @@ function Home() {
       category_id: null,
       created_at: "",
       updated_at: "",
-      profiles: { full_name: "PathMate" },
-      categories: { name: "Projects" },
+      profiles: { full_name: "PathMate", avatar_url: null },
+      categories: { name: "Projects", slug: "projects" },
     },
   ];
 
   const displayExperiences =
     experiences.length > 0 ? experiences : demos;
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      navigate({ to: "/search", search: { q: searchQuery.trim() } });
+    }
+  };
+
+  const handleSearchClick = () => {
+    if (searchQuery.trim()) {
+      navigate({ to: "/search", search: { q: searchQuery.trim() } });
+    } else {
+      document.getElementById("explore")?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <main>
@@ -129,20 +123,12 @@ function Home() {
             you&apos;re considering.
           </p>
 
-          <div
-            style={{
-              maxWidth: "720px",
-              margin: "25px auto 0",
-              background: "#fff",
-              border: "1px solid var(--line)",
-              borderRadius: "18px",
-              padding: "8px",
-              display: "flex",
-            }}
-            className="search-box"
-          >
+          <div className="search-box">
             <input
               placeholder="What do you want to do? e.g. start a business"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
               style={{
                 flex: 1,
                 border: "none",
@@ -153,15 +139,9 @@ function Home() {
                 fontSize: "inherit",
                 font: "inherit",
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const el = document.getElementById("explore");
-                  el?.scrollIntoView({ behavior: "smooth" });
-                }
-              }}
             />
-            <a
-              href="#explore"
+            <button
+              onClick={handleSearchClick}
               style={{
                 border: "none",
                 borderRadius: "12px",
@@ -172,10 +152,13 @@ function Home() {
                 textDecoration: "none",
                 display: "inline-block",
                 whiteSpace: "nowrap",
+                cursor: "pointer",
+                fontSize: "inherit",
+                font: "inherit",
               }}
             >
               Find someone
-            </a>
+            </button>
           </div>
         </div>
       </section>
@@ -342,64 +325,7 @@ function Home() {
             className="grid three-col"
           >
             {displayExperiences.map((exp) => (
-              <div className="card" key={exp.id}>
-                <span
-                  style={{
-                    display: "inline-block",
-                    background: "#f2f4f7",
-                    borderRadius: "999px",
-                    padding: "6px 9px",
-                    fontSize: ".78rem",
-                    fontWeight: 700,
-                    color: "#475467",
-                  }}
-                >
-                  {exp.categories?.name || "Experience"}
-                </span>
-                <h3 style={{ margin: "8px 0 12px" }}>{exp.title}</h3>
-                <p style={{ color: "var(--muted)", whiteSpace: "pre-wrap" }}>
-                  {exp.content}
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    alignItems: "center",
-                    borderTop: "1px solid var(--line)",
-                    paddingTop: "15px",
-                    marginTop: "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "38px",
-                      height: "38px",
-                      borderRadius: "50%",
-                      background: "#fff1e9",
-                      color: "#c85b2e",
-                      display: "grid",
-                      placeItems: "center",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {(exp.profiles?.full_name || "P")[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: ".95rem" }}>
-                      {exp.profiles?.full_name || "PathMate"}
-                    </strong>
-                    <small
-                      style={{
-                        display: "block",
-                        color: "var(--muted)",
-                        fontSize: ".8rem",
-                      }}
-                    >
-                      Shared experience
-                    </small>
-                  </div>
-                </div>
-              </div>
+              <ExperienceCard key={exp.id} experience={exp} />
             ))}
           </div>
         </div>
@@ -538,9 +464,7 @@ function Home() {
       </section>
 
       {/* CTA */}
-      <section
-        style={{ padding: "80px 0", textAlign: "center" }}
-      >
+      <section style={{ padding: "80px 0", textAlign: "center" }}>
         <div
           style={{
             width: "min(1160px, calc(100% - 32px))",
@@ -597,5 +521,110 @@ function Home() {
         </div>
       </section>
     </main>
+  );
+}
+
+/** Reusable experience card used on homepage and search results */
+function ExperienceCard({
+  experience,
+}: {
+  experience: ExperienceWithDetails;
+}) {
+  const isDemo = experience.id.startsWith("demo");
+  const preview =
+    experience.content.length > 150
+      ? experience.content.slice(0, 150) + "..."
+      : experience.content;
+  const initials = (experience.profiles?.full_name || "P")[0].toUpperCase();
+  const categoryName = experience.categories?.name || "Experience";
+
+  return (
+    <div className="card">
+      {/* Category tag */}
+      <span
+        style={{
+          display: "inline-block",
+          background: "#f2f4f7",
+          borderRadius: "999px",
+          padding: "6px 9px",
+          fontSize: ".78rem",
+          fontWeight: 700,
+          color: "#475467",
+        }}
+      >
+        {categoryName}
+      </span>
+
+      {/* Title */}
+      <h3 style={{ margin: "8px 0 12px", fontSize: "1.05rem" }}>
+        {experience.title}
+      </h3>
+
+      {/* Content preview */}
+      <p style={{ color: "var(--muted)", whiteSpace: "pre-wrap", fontSize: ".92rem" }}>
+        {preview}
+      </p>
+
+      {/* Author + link */}
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          alignItems: "center",
+          borderTop: "1px solid var(--line)",
+          paddingTop: "15px",
+          marginTop: "16px",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div
+            style={{
+              width: "38px",
+              height: "38px",
+              borderRadius: "50%",
+              background: "#fff1e9",
+              color: "#c85b2e",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 800,
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </div>
+          <div>
+            <strong style={{ fontSize: ".95rem" }}>
+              {experience.profiles?.full_name || "PathMate"}
+            </strong>
+            <small
+              style={{
+                display: "block",
+                color: "var(--muted)",
+                fontSize: ".8rem",
+              }}
+            >
+              Shared experience
+            </small>
+          </div>
+        </div>
+
+        {!isDemo && (
+          <Link
+            to="/experiences/$experienceId"
+            params={{ experienceId: experience.id }}
+            style={{
+              fontSize: ".82rem",
+              fontWeight: 700,
+              color: "var(--accent)",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            View experience →
+          </Link>
+        )}
+      </div>
+    </div>
   );
 }

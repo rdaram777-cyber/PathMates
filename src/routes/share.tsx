@@ -1,64 +1,22 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, type FormEvent } from "react";
 import { useAuth } from "~/lib/auth";
-import { supabase } from "~/lib/supabase";
-
-const createExperience = createServerFn({ method: "POST" })
-  .validator(
-    (data: { title: string; content: string; categorySlug: string }) => data,
-  )
-  .handler(async ({ data }) => {
-    const { createSupabaseClient } = await import("~/db");
-
-    const sb = createSupabaseClient();
-
-    // Get user from session (server-side)
-    const {
-      data: { user },
-    } = await sb.auth.getUser();
-
-    if (!user) {
-      throw new Error("You must be logged in to share an experience.");
-    }
-
-    // Find category by slug
-    let categoryId: string | null = null;
-    if (data.categorySlug) {
-      const { data: category } = await sb
-        .from("categories")
-        .select("id")
-        .eq("slug", data.categorySlug.toLowerCase())
-        .single();
-
-      categoryId = category?.id ?? null;
-    }
-
-    const { error } = await sb.from("experiences").insert({
-      user_id: user.id,
-      title: data.title,
-      content: data.content,
-      category_id: categoryId,
-    });
-
-    if (error) throw new Error(error.message);
-
-    return { success: true };
-  });
+import { createExperience, getCategories, type Category } from "~/lib/experiences";
 
 export const Route = createFileRoute("/share")({
+  loader: () => getCategories(),
   component: SharePage,
 });
 
 function SharePage() {
+  const categories = Route.useLoaderData() as Category[];
   const { user } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   // Redirect to signup if not logged in
   if (!user) {
@@ -90,9 +48,11 @@ function SharePage() {
             Create an account or log in to share what you&apos;ve learned with the
             PathMates community.
           </p>
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-            <a
-              href="/login"
+          <div
+            style={{ display: "flex", gap: "10px", justifyContent: "center" }}
+          >
+            <Link
+              to="/login"
               style={{
                 border: "1px solid var(--line)",
                 borderRadius: "12px",
@@ -104,9 +64,9 @@ function SharePage() {
               }}
             >
               Log in
-            </a>
-            <a
-              href="/signup"
+            </Link>
+            <Link
+              to="/signup"
               style={{
                 border: "none",
                 borderRadius: "12px",
@@ -118,7 +78,7 @@ function SharePage() {
               }}
             >
               Get started
-            </a>
+            </Link>
           </div>
         </div>
       </main>
@@ -128,29 +88,31 @@ function SharePage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    setMessage("");
     setLoading(true);
 
     try {
-      await createExperience({
-        title: title.trim(),
-        content: content.trim(),
-        categorySlug: category.trim(),
+      const result = await createExperience({
+        data: {
+          title: title.trim(),
+          content: content.trim(),
+          category_id: categoryId || null,
+        },
       });
 
-      setMessage("Experience published successfully.");
       setTitle("");
-      setCategory("");
+      setCategoryId("");
       setContent("");
+      setLoading(false);
 
-      setTimeout(() => {
-        navigate({ to: "/" });
-      }, 1000);
+      // Redirect to the new experience detail page
+      navigate({
+        to: "/experiences/$experienceId",
+        params: { experienceId: result.id },
+      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unexpected error occurred.",
       );
-    } finally {
       setLoading(false);
     }
   }
@@ -202,21 +164,6 @@ function SharePage() {
           </div>
         )}
 
-        {message && (
-          <div
-            style={{
-              padding: "12px",
-              borderRadius: "10px",
-              background: "#ecfdf3",
-              color: "#16803c",
-              marginBottom: "16px",
-              fontSize: ".9rem",
-            }}
-          >
-            {message}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: "16px" }}>
             <label
@@ -257,12 +204,10 @@ function SharePage() {
             >
               Category
             </label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
               required
-              placeholder="Business, Career, Relocation"
               style={{
                 width: "100%",
                 border: "1px solid var(--line)",
@@ -272,8 +217,18 @@ function SharePage() {
                 fontSize: "inherit",
                 font: "inherit",
                 background: "var(--bg)",
+                cursor: "pointer",
               }}
-            />
+            >
+              <option value="" disabled>
+                Select a category
+              </option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{ marginBottom: "24px" }}>
@@ -306,10 +261,11 @@ function SharePage() {
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/" })}
+          <div
+            style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}
+          >
+            <Link
+              to="/"
               style={{
                 border: "1px solid var(--line)",
                 borderRadius: "12px",
@@ -317,13 +273,14 @@ function SharePage() {
                 fontWeight: 700,
                 background: "transparent",
                 color: "var(--text)",
-                cursor: "pointer",
+                textDecoration: "none",
                 fontSize: "inherit",
-                font: "inherit",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
               Cancel
-            </button>
+            </Link>
             <button
               type="submit"
               disabled={loading}
