@@ -144,6 +144,17 @@ function ProfileView() {
               </small>
             ) : null}
           </div>
+            {/* Email verification status */}
+            {isOwn && (
+              <div style={{ marginTop: "6px" }}>
+                {user?.email_confirmed_at ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: ".8rem", color: "#16803c", fontWeight: 600 }}>✓ Email verified</span>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: ".8rem", color: "#b54708", fontWeight: 600 }}>⚠ Email not verified</span>
+                )}
+              </div>
+            )}
+
           {isOwn && (
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               <Link

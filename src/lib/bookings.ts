@@ -7,6 +7,7 @@ import {
   verifyStripeSession,
 } from "~/lib/stripe";
 import type { Database } from "~/lib/database.types";
+import { createNotification } from "~/lib/notifications";
 
 // ---- Types ----
 
@@ -186,6 +187,20 @@ export const createBooking = createServerFn({ method: "POST" })
       .update({ stripe_session_id: checkoutUrl.split("/").pop()?.split("?")[0] })
       .eq("id", booking.id);
 
+    // Notify the PathMate about the pending booking
+    try {
+      const explorerName = user.user_metadata?.full_name || user.email || "An explorer";
+      await createNotification({
+        userId: data.pathmate_id,
+        type: "booking_confirmed",
+        title: "New booking request",
+        message: `${explorerName} has requested a call${data.experience_title ? ` about "${data.experience_title}"` : ""}.`,
+        link: `/bookings`,
+      });
+    } catch {
+      // Don't fail the booking if notification fails
+    }
+
     return { bookingId: booking.id, checkoutUrl };
   });
 
@@ -262,6 +277,40 @@ export const confirmBooking = createServerFn({ method: "POST" })
       .eq("id", bookingId);
 
     if (error) throw new Error(error.message);
+
+    // Notify the PathMate about the new booking
+    try {
+      const explorerName = user.user_metadata?.full_name || user.email || "An explorer";
+      await createNotification({
+        userId: booking.pathmate_id,
+        type: "booking_confirmed",
+        title: "New booking request",
+        message: `${explorerName} has booked a call with you.`,
+        link: `/bookings`,
+      });
+    } catch {
+      // Don't fail the booking if notification fails
+    }
+
+    // Notify the Explorer that payment is confirmed
+    try {
+      const { data: pathmateProfile } = await sb
+        .from("profiles")
+        .select("full_name")
+        .eq("id", booking.pathmate_id)
+        .single();
+      const pathmateName = pathmateProfile?.full_name || "your PathMate";
+      await createNotification({
+        userId: booking.explorer_id,
+        type: "booking_confirmed",
+        title: "Booking confirmed!",
+        message: `Your call with ${pathmateName} has been confirmed.`,
+        link: `/bookings`,
+      });
+    } catch {
+      // Don't fail if notification fails
+    }
+
     return { success: true, meetingUrl };
   });
 

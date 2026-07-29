@@ -2,12 +2,14 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "~/lib/auth";
 import { isAdmin } from "~/lib/admin";
 import { useEffect, useState, type ReactNode } from "react";
+import { LoadingPage } from "~/components/LoadingSpinner";
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const routerState = useRouterState();
   const [adminChecked, setAdminChecked] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -26,11 +28,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [user, authLoading]);
 
   if (authLoading || !adminChecked) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-        <div style={{ fontSize: "1.2rem", color: "var(--muted)" }}>Loading...</div>
-      </div>
-    );
+    return <LoadingPage message="Loading admin..." />;
   }
 
   if (!isAdminUser) {
@@ -53,7 +51,107 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      {/* Sidebar */}
+      {/* Mobile top bar */}
+      <div className="admin-mobile-bar" style={{ display: "none" }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            background: "var(--dark)",
+            color: "#fff",
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            zIndex: 30,
+          }}
+        >
+          <Link
+            to="/admin"
+            style={{ textDecoration: "none", color: "#fff", fontSize: "1.1rem", fontWeight: 800 }}
+          >
+            Path<span style={{ color: "var(--accent)" }}>Mates</span>{" "}
+            <span style={{ fontSize: "0.7rem", fontWeight: 500, opacity: 0.6 }}>Admin</span>
+          </Link>
+          <button
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#fff",
+              fontSize: "1.3rem",
+              cursor: "pointer",
+              padding: "4px",
+              minWidth: "44px",
+              minHeight: "44px",
+            }}
+          >
+            {mobileNavOpen ? "✕" : "☰"}
+          </button>
+        </div>
+        {/* Mobile nav dropdown */}
+        {mobileNavOpen && (
+          <div
+            style={{
+              position: "fixed",
+              top: "56px",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "var(--dark)",
+              zIndex: 29,
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+            }}
+          >
+            {navItems.map((item) => {
+              const isActive = item.matchExact
+                ? currentPath === item.to
+                : currentPath.startsWith(item.to);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileNavOpen(false)}
+                  style={{
+                    display: "block",
+                    padding: "14px 16px",
+                    borderRadius: "12px",
+                    textDecoration: "none",
+                    color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
+                    background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
+                    fontWeight: isActive ? 600 : 400,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.1)", margin: "8px 0" }} />
+            <Link
+              to="/"
+              onClick={() => setMobileNavOpen(false)}
+              style={{
+                display: "block",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                textDecoration: "none",
+                color: "rgba(255,255,255,0.5)",
+                fontSize: "0.9rem",
+              }}
+            >
+              ← Back to PathMates
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Sidebar (desktop) */}
       <aside
         className="admin-sidebar"
         style={{
@@ -127,19 +225,22 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main style={{ marginLeft: "240px", flex: 1, padding: "30px 36px", minHeight: "100vh" }}>
+      <main className="admin-main" style={{ marginLeft: "240px", flex: 1, padding: "30px 36px", minHeight: "100vh" }}>
         {children}
       </main>
 
-      {/* Mobile styles */}
+      {/* Responsive styles */}
       <style>{`
         @media (max-width: 768px) {
           .admin-sidebar {
             display: none !important;
           }
-          main {
+          .admin-mobile-bar {
+            display: block !important;
+          }
+          .admin-main {
             margin-left: 0 !important;
-            padding: 20px 16px !important;
+            padding: 72px 16px 20px !important;
           }
         }
       `}</style>
