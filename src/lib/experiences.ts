@@ -23,7 +23,7 @@ export type Category =
 
 export const getExperiences = createServerFn({ method: "GET" }).handler(
   async (): Promise<ExperienceWithDetails[]> => {
-    const sb = createSupabaseClient();
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("experiences")
       .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
@@ -38,7 +38,7 @@ export const getExperiences = createServerFn({ method: "GET" }).handler(
 export const getExperience = createServerFn({ method: "GET" })
   .validator((id: string) => id)
   .handler(async ({ data: id }): Promise<ExperienceWithDetails | null> => {
-    const sb = createSupabaseClient();
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("experiences")
       .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
@@ -52,7 +52,7 @@ export const getExperience = createServerFn({ method: "GET" })
 export const searchExperiences = createServerFn({ method: "GET" })
   .validator((query: string) => query)
   .handler(async ({ data: query }): Promise<ExperienceWithDetails[]> => {
-    const sb = createSupabaseClient();
+    const sb = createSupabaseClient({ useServiceRole: true });
     const term = `%${query}%`;
 
     // Search across title, content, and category name
@@ -81,7 +81,7 @@ export const searchExperiences = createServerFn({ method: "GET" })
 
 export const getCategories = createServerFn({ method: "GET" }).handler(
   async (): Promise<Category[]> => {
-    const sb = createSupabaseClient();
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("categories")
       .select("*")
