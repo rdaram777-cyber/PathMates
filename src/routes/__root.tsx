@@ -77,6 +77,7 @@ function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   // Fetch unread notification count
@@ -92,6 +93,14 @@ function AppShell() {
         .catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
+  }, [user]);
+
+  // Check if user is admin
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase.from("profiles").select("role").eq("id", user.id).single()
+      .then(({ data }) => setIsAdmin(data?.role === "admin"))
+      .catch(() => setIsAdmin(false));
   }, [user]);
 
   // Close notif dropdown on outside click
@@ -295,6 +304,22 @@ function AppShell() {
                 >
                   My Bookings
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    style={{
+                      color: "#c85b2e",
+                      textDecoration: "none",
+                      fontWeight: 700,
+                      background: "#fff1e9",
+                      padding: "6px 14px",
+                      borderRadius: "10px",
+                      fontSize: ".85rem",
+                    }}
+                  >
+                    ⚙ Admin
+                  </Link>
+                )}
                 <Link
                   to="/profile/$userId"
                   params={{ userId: user.id }}
