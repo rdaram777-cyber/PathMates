@@ -5,6 +5,8 @@ import { useAuth } from "~/lib/auth";
 import { supabase } from "~/lib/supabase";
 import { createSupabaseClient } from "~/db";
 
+const inputStyle = { width: "100%", border: "1px solid var(--line)", borderRadius: "10px", padding: "12px", outline: "none", fontSize: "inherit", font: "inherit", background: "var(--bg)" };
+
 const getProfile = createServerFn({ method: "GET" })
   .validator((userId: string) => userId)
   .handler(async ({ data: userId }) => {
@@ -32,6 +34,10 @@ function EditProfile() {
   const [fullName, setFullName] = useState(profile.full_name ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [bioShort, setBioShort] = useState(profile.bio_short ?? "");
+  const [country, setCountry] = useState(profile.country ?? "");
+  const [yearsOfExperience, setYearsOfExperience] = useState(profile.years_of_experience?.toString() ?? "");
+  const [currentRole, setCurrentRole] = useState(profile.current_role ?? "");
+  const [headline, setHeadline] = useState(profile.headline ?? "");
   const [hourlyRate, setHourlyRate] = useState(profile.hourly_rate ?? 5000);
   const [languagesInput, setLanguagesInput] = useState(
     (profile.languages ?? []).join(", "),
@@ -102,6 +108,10 @@ function EditProfile() {
           full_name: fullName.trim() || null,
           bio: bio.trim() || null,
           bio_short: bioShort.trim() || null,
+          country: country.trim() || null,
+          years_of_experience: yearsOfExperience ? Number(yearsOfExperience) : null,
+          current_role: currentRole.trim() || null,
+          headline: headline.trim() || null,
           hourly_rate: hourlyRate,
           languages,
           skills,
@@ -306,6 +316,27 @@ function EditProfile() {
             />
           </div>
 
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "6px" }}>Country</label>
+            <input type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="India" style={inputStyle} />
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "6px" }}>Years of Experience</label>
+            <input type="number" min="0" value={yearsOfExperience} onChange={(e) => setYearsOfExperience(e.target.value)} placeholder="5" style={inputStyle} />
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "6px" }}>Current Role</label>
+            <input type="text" value={currentRole} onChange={(e) => setCurrentRole(e.target.value)} placeholder="Product Designer" style={inputStyle} />
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "6px" }}>Headline</label>
+            <input type="text" value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="I help teams build better products" style={inputStyle} />
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: "6px" }}>Hourly Rate (₹/USD)</label>
+            <input type="number" min="0" step="0.01" value={(hourlyRate / 100).toString()} onChange={(e) => setHourlyRate(Math.round(Number(e.target.value || 0) * 100))} style={inputStyle} />
+            <small style={{ color: "var(--muted)" }}>Displayed rate is stored in cents.</small>
+          </div>
           <div style={{ marginBottom: "16px" }}>
             <label
               style={{

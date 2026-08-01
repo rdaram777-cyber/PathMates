@@ -13,6 +13,10 @@ export interface Database {
         Row: {
           id: string;
           full_name: string | null;
+          country: string | null;
+          years_of_experience: number | null;
+          current_role: string | null;
+          headline: string | null;
           bio: string | null;
           bio_short: string | null;
           avatar_url: string | null;
@@ -29,6 +33,10 @@ export interface Database {
         Insert: {
           id: string;
           full_name?: string | null;
+          country?: string | null;
+          years_of_experience?: number | null;
+          current_role?: string | null;
+          headline?: string | null;
           bio?: string | null;
           bio_short?: string | null;
           avatar_url?: string | null;
@@ -45,6 +53,10 @@ export interface Database {
         Update: {
           id?: string;
           full_name?: string | null;
+          country?: string | null;
+          years_of_experience?: number | null;
+          current_role?: string | null;
+          headline?: string | null;
           bio?: string | null;
           bio_short?: string | null;
           avatar_url?: string | null;
