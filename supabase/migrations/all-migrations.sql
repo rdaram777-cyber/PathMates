@@ -505,3 +505,9 @@ ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name;
 CREATE POLICY "categories_select_anon" ON public.categories
   FOR SELECT TO anon
   USING (true);
+-- Migration 008: Add professional profile details
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS country TEXT,
+  ADD COLUMN IF NOT EXISTS years_of_experience INTEGER,
+  ADD COLUMN IF NOT EXISTS current_role TEXT,
+  ADD COLUMN IF NOT EXISTS headline TEXT;

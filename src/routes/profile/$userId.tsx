@@ -124,6 +124,16 @@ function ProfileView() {
                 </span>
               )}
             </div>
+            {profile.headline && (
+              <p style={{ margin: "8px 0 0", fontSize: "1.05rem", fontWeight: 700, color: "var(--text)" }}>{profile.headline}</p>
+            )}
+            {(profile.country || profile.years_of_experience != null || profile.current_role) && (
+              <div style={{ marginTop: "8px", color: "var(--muted)", fontSize: ".9rem", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                {profile.country && <span>📍 {profile.country}</span>}
+                {profile.years_of_experience != null && <span>{profile.years_of_experience} years of experience</span>}
+                {profile.current_role && <span>{profile.current_role}</span>}
+              </div>
+            )}
             <div style={{ marginTop: "4px" }}>
               <StarRating
                 rating={ratingData?.avg_rating ?? profile.avg_rating ?? 0}
