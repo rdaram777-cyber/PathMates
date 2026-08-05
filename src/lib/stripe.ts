@@ -76,6 +76,8 @@ export interface CreateCheckoutSessionParams {
   platformFeeCents: number;
   pathmateEarningsCents: number;
   durationMinutes: number;
+  /** ISO 4217 code, e.g. "INR" or "USD". Defaults to "usd". */
+  currency?: string;
   successUrl: string;
   cancelUrl: string;
 }
@@ -93,13 +95,10 @@ export async function createCheckoutSession(
     line_items: [
       {
         price_data: {
-          currency: "usd",
+          currency: (params.currency ?? "usd").toLowerCase(),
           product_data: {
             name: `Video call with ${params.pathmateName}`,
-            description:
-              params.durationMinutes === 30
-                ? "30-minute video call"
-                : "60-minute video call",
+            description: `${params.durationMinutes}-minute video call`,
           },
           unit_amount: params.amountCents,
         },
@@ -112,6 +111,7 @@ export async function createCheckoutSession(
       pathmate_id: params.pathmateId,
       platform_fee_cents: String(params.platformFeeCents),
       pathmate_earnings_cents: String(params.pathmateEarningsCents),
+      currency: (params.currency ?? "usd").toLowerCase(),
       ...(params.experienceId ? { experience_id: params.experienceId } : {}),
     },
     success_url: params.successUrl,

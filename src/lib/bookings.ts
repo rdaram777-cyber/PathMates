@@ -8,6 +8,11 @@ import {
 } from "~/lib/stripe";
 import type { Database } from "~/lib/database.types";
 import { createNotification } from "~/lib/notifications";
+import {
+  getTierPriceCents,
+  isSupportedCurrency,
+  type CurrencyCode,
+} from "~/lib/currency";
 
 // ---- Types ----
 
@@ -126,7 +131,8 @@ export const createBooking = createServerFn({ method: "POST" })
       experience_id?: string | null;
       scheduled_at: string;
       duration_minutes: number;
-      amount_cents: number;
+      /** Detected currency ("INR" | "USD"). The amount is always computed server-side from TIER_PRICING. */
+      currency?: string;
       pathmate_name: string;
       experience_title?: string;
     }) => data,
@@ -138,10 +144,16 @@ export const createBooking = createServerFn({ method: "POST" })
     } = await sb.auth.getUser();
     if (!user) throw new Error("You must be logged in to book a call.");
 
+    // Fixed tier pricing: validate the duration and derive the amount from the
+    // platform-wide table — never trust a client-supplied amount.
+    const currency: CurrencyCode = isSupportedCurrency(data.currency)
+      ? data.currency
+      : "USD";
+    const amountCents = getTierPriceCents(data.duration_minutes, currency);
     // Calculate commission (dynamic from DB)
     const commissionPercent = await getCommissionPercent();
     const { platformFee, pathmateEarnings } = calculateCommission(
-      data.amount_cents,
+      amountCents,
       commissionPercent,
     );
 
@@ -154,7 +166,7 @@ export const createBooking = createServerFn({ method: "POST" })
         experience_id: data.experience_id ?? null,
         scheduled_at: data.scheduled_at,
         duration_minutes: data.duration_minutes,
-        amount_cents: data.amount_cents,
+        amount_cents: amountCents,
         platform_fee_cents: platformFee,
         pathmate_earnings_cents: pathmateEarnings,
         status: "pending",
@@ -173,9 +185,10 @@ export const createBooking = createServerFn({ method: "POST" })
       pathmateName: data.pathmate_name,
       experienceId: data.experience_id ?? null,
       experienceTitle: data.experience_title,
-      amountCents: data.amount_cents,
+      amountCents,
       platformFeeCents: platformFee,
       pathmateEarningsCents: pathmateEarnings,
+      currency,
       successUrl: `${siteUrl}/bookings/${booking.id}/success`,
       cancelUrl: `${siteUrl}/experiences/${data.experience_id ?? ""}`,
       durationMinutes: data.duration_minutes,

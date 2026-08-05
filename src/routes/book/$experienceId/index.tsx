@@ -8,6 +8,13 @@ import {
   getPathmateAvailability,
   createBooking,
 } from "~/lib/bookings";
+import {
+  getUserCurrency,
+  formatTierPrice,
+  TIER_DURATIONS,
+  type CurrencyCode,
+  type TierDuration,
+} from "~/lib/currency";
 
 export const Route = createFileRoute("/book/$experienceId/")({
   loader: async ({ params }) => {
@@ -81,9 +88,17 @@ function BookPage() {
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState<TierDuration>(30);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Currency detection: default to USD for SSR/first paint, then switch to the
+  // user's detected currency (₹ for India, $ for everyone else) after mount.
+  const [currency, setCurrency] = useState<{ code: CurrencyCode; symbol: string }>(
+    { code: "USD", symbol: "$" },
+  );
+  useEffect(() => {
+    setCurrency(getUserCurrency());
+  }, []);
 
   // Redirect to login if not authenticated
   if (!user) {
@@ -149,8 +164,8 @@ function BookPage() {
   const timeSlots = selectedDate
     ? getTimeSlotsForDate(slots, selectedDate)
     : [];
-  const hourlyRate = profile.hourly_rate || 5000;
-  const amountCents = hourlyRate * (duration / 60);
+  // Fixed tier pricing — prices come from the platform-wide table,
+  // not from the PathMate's hourly_rate.
 
   const handleBook = async () => {
     if (!selectedDate || !selectedTime) return;
@@ -168,7 +183,7 @@ function BookPage() {
           experience_id: experience.id,
           scheduled_at: scheduledAt.toISOString(),
           duration_minutes: duration,
-          amount_cents: Math.round(amountCents),
+          currency: currency.code,
           pathmate_name:
             experience.profiles?.full_name || profile.full_name || "PathMate",
           experience_title: experience.title,
@@ -266,7 +281,7 @@ function BookPage() {
                 color: "var(--accent)",
               }}
             >
-              ${(hourlyRate / 100).toFixed(2)} / hour
+              Sessions from {formatTierPrice(15, currency)}
             </div>
             <div style={{ marginTop: "4px" }}>
               <StarRatingInline rating={profile.avg_rating ?? 0} count={profile.review_count ?? 0} />
@@ -385,7 +400,7 @@ function BookPage() {
             Duration
           </h2>
           <div style={{ display: "flex", gap: "8px" }}>
-            {[30, 60].map((mins) => (
+            {TIER_DURATIONS.map((mins) => (
               <button
                 key={mins}
                 onClick={() => setDuration(mins)}
@@ -406,7 +421,17 @@ function BookPage() {
                   font: "inherit",
                 }}
               >
-                {mins} minutes
+                <span style={{ display: "block" }}>{mins} min</span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: ".78rem",
+                    fontWeight: 600,
+                    opacity: 0.8,
+                  }}
+                >
+                  {formatTierPrice(mins, currency)}
+                </span>
               </button>
             ))}
           </div>
@@ -435,13 +460,13 @@ function BookPage() {
                   Total
                 </strong>
                 <small style={{ color: "var(--muted)" }}>
-                  {duration} minutes at ${(hourlyRate / 100).toFixed(2)}/hour
+                  {duration} minutes · session price
                 </small>
               </div>
               <div
                 style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--accent)" }}
               >
-                ${(amountCents / 100).toFixed(2)}
+                {formatTierPrice(duration, currency)}
               </div>
             </div>
             <button
