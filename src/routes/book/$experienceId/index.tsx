@@ -7,6 +7,7 @@ import {
   getPathmateProfile,
   getPathmateAvailability,
   createBooking,
+  confirmRazorpayBooking,
 } from "~/lib/bookings";
 import {
   getUserCurrency,
@@ -79,6 +80,26 @@ function formatTime(t: string): string {
   const ampm = hour >= 12 ? "PM" : "AM";
   const h12 = hour % 12 || 12;
   return `${h12}:${m} ${ampm}`;
+}
+
+/**
+ * Dynamically load the Razorpay Checkout script (loaded only when an INR
+ * booking is being paid — keeps it out of the initial bundle).
+ */
+function loadRazorpayCheckoutScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== "undefined" && (window as any).Razorpay) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () =>
+      reject(new Error("Failed to load Razorpay checkout. Please try again."));
+    document.body.appendChild(script);
+  });
 }
 
 function BookPage() {
@@ -185,13 +206,63 @@ function BookPage() {
           duration_minutes: duration,
           currency: currency.code,
           pathmate_name:
-            experience.profiles?.full_name || profile.full_name || "PathMate",
+            experience.profiles?.full_name || profile?.full_name || "PathMate",
           experience_title: experience.title,
         },
       });
 
-      // Redirect to Stripe Checkout
-      window.location.href = result.checkoutUrl;
+      if (result.gateway === "stripe") {
+        // USD → redirect to Stripe Checkout (existing behavior)
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+
+      // INR → open the Razorpay Checkout modal with the server-created order
+      await loadRazorpayCheckoutScript();
+      const RazorpayCtor = (window as any).Razorpay;
+      if (!RazorpayCtor) {
+        throw new Error("Razorpay checkout could not be loaded. Please try again.");
+      }
+
+      const paymentHandler = async (response: any) => {
+        try {
+          // Verify the payment server-side before marking the booking paid
+          await confirmRazorpayBooking({
+            data: {
+              bookingId: result.bookingId,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            },
+          });
+          window.location.href = `/bookings/${result.bookingId}/success`;
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Payment could not be verified. Please contact support.",
+          );
+          setLoading(false);
+        }
+      };
+
+      const rzp = new RazorpayCtor({
+        key: result.keyId,
+        amount: result.amount, // paise
+        currency: result.currency,
+        order_id: result.orderId,
+        name: "PathMates",
+        description: `${duration}-minute video call with ${profile?.full_name || "your PathMate"}`,
+        prefill: {
+          email: user?.email ?? "",
+        },
+        theme: { color: "#c85b2e" },
+        handler: paymentHandler,
+        modal: {
+          ondismiss: () => setLoading(false),
+        },
+      });
+      rzp.open();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create booking.",

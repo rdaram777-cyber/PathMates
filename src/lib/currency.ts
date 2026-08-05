@@ -71,3 +71,23 @@ export function formatTierPrice(duration: number, currency: { code: CurrencyCode
   const formatted = Number.isInteger(value) ? String(value) : value.toFixed(2);
   return `${currency.symbol}${formatted}`;
 }
+
+/** Currency symbol for a booking's currency column ("INR" | "USD"). Defaults to "$". */
+export function currencySymbol(code: string | null | undefined): string {
+  return code === "INR" ? "₹" : "$";
+}
+
+/**
+ * Format an arbitrary amount (in cents) for display using the currency code
+ * stored on the booking, e.g. formatAmountCents(9900, "INR") → "₹99".
+ * Falls back to USD for unknown/legacy rows.
+ */
+export function formatAmountCents(
+  cents: number,
+  code: string | null | undefined,
+): string {
+  const symbol = currencySymbol(code);
+  const value = cents / 100;
+  const formatted = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  return `${symbol}${formatted}`;
+}

@@ -6,9 +6,15 @@ import {
   getCommissionPercent,
   verifyStripeSession,
 } from "~/lib/stripe";
+import {
+  createRazorpayOrder,
+  getRazorpayKeyId,
+  verifyRazorpayPayment,
+} from "~/lib/razorpay";
 import type { Database } from "~/lib/database.types";
 import { createNotification } from "~/lib/notifications";
 import {
+  formatAmountCents,
   getTierPriceCents,
   isSupportedCurrency,
   type CurrencyCode,
@@ -24,6 +30,19 @@ export interface BookingWithDetails extends Booking {
   explorer?: { full_name: string | null; avatar_url: string | null } | null;
   pathmate?: { full_name: string | null; avatar_url: string | null } | null;
 }
+
+/** Result of createBooking — the client branches on `gateway`. */
+export type CreateBookingResult =
+  | { gateway: "stripe"; bookingId: string; checkoutUrl: string }
+  | {
+      gateway: "razorpay";
+      bookingId: string;
+      orderId: string;
+      keyId: string;
+      /** Order amount in paise (same unit as cents). */
+      amount: number;
+      currency: "INR";
+    };
 
 // ---- Availability ----
 
@@ -170,14 +189,54 @@ export const createBooking = createServerFn({ method: "POST" })
         platform_fee_cents: platformFee,
         pathmate_earnings_cents: pathmateEarnings,
         status: "pending",
+        currency,
+        payment_gateway: currency === "INR" ? "razorpay" : "stripe",
       })
       .select("id")
       .single();
 
     if (bookingError) throw new Error(bookingError.message);
 
-    // Create Stripe checkout session
     const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    const amountLabel = formatAmountCents(amountCents, currency);
+
+    // Notify the PathMate about the pending booking request
+    try {
+      const explorerName =
+        user.user_metadata?.full_name || user.email || "An explorer";
+      await createNotification({
+        userId: data.pathmate_id,
+        type: "booking_confirmed",
+        title: "New booking request",
+        message: `${explorerName} has requested a ${data.duration_minutes}-minute call${data.experience_title ? ` about "${data.experience_title}"` : ""} (${amountLabel}).`,
+        link: `/bookings`,
+      });
+    } catch {
+      // Don't fail the booking if notification fails
+    }
+
+    // Route the payment by currency: INR → Razorpay, USD → Stripe.
+    if (currency === "INR") {
+      // Create a Razorpay order (amount in paise = our INR cents).
+      const order = await createRazorpayOrder(amountCents, booking.id);
+
+      // Store the order id on the booking for verification later.
+      await sb
+        .from("bookings")
+        .update({ razorpay_order_id: order.id })
+        .eq("id", booking.id);
+
+      return {
+        gateway: "razorpay",
+        bookingId: booking.id,
+        orderId: order.id,
+        keyId: getRazorpayKeyId(),
+        amount: order.amount,
+        currency: "INR",
+      } as const;
+    }
+
+    // USD → Stripe Checkout (unchanged flow).
     const { checkoutUrl } = await createCheckoutSession({
       bookingId: booking.id,
       explorerId: user.id,
@@ -200,21 +259,7 @@ export const createBooking = createServerFn({ method: "POST" })
       .update({ stripe_session_id: checkoutUrl.split("/").pop()?.split("?")[0] })
       .eq("id", booking.id);
 
-    // Notify the PathMate about the pending booking
-    try {
-      const explorerName = user.user_metadata?.full_name || user.email || "An explorer";
-      await createNotification({
-        userId: data.pathmate_id,
-        type: "booking_confirmed",
-        title: "New booking request",
-        message: `${explorerName} has requested a call${data.experience_title ? ` about "${data.experience_title}"` : ""}.`,
-        link: `/bookings`,
-      });
-    } catch {
-      // Don't fail the booking if notification fails
-    }
-
-    return { bookingId: booking.id, checkoutUrl };
+    return { gateway: "stripe", bookingId: booking.id, checkoutUrl };
   });
 
 export const getBooking = createServerFn({ method: "GET" })
@@ -293,12 +338,128 @@ export const confirmBooking = createServerFn({ method: "POST" })
 
     // Notify the PathMate about the new booking
     try {
-      const explorerName = user.user_metadata?.full_name || user.email || "An explorer";
+      const explorerName =
+        user.user_metadata?.full_name || user.email || "An explorer";
+      const amountLabel = formatAmountCents(
+        booking.amount_cents,
+        booking.currency,
+      );
       await createNotification({
         userId: booking.pathmate_id,
         type: "booking_confirmed",
         title: "New booking request",
-        message: `${explorerName} has booked a call with you.`,
+        message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
+        link: `/bookings`,
+      });
+    } catch {
+      // Don't fail the booking if notification fails
+    }
+
+    // Notify the Explorer that payment is confirmed
+    try {
+      const { data: pathmateProfile } = await sb
+        .from("profiles")
+        .select("full_name")
+        .eq("id", booking.pathmate_id)
+        .single();
+      const pathmateName = pathmateProfile?.full_name || "your PathMate";
+      await createNotification({
+        userId: booking.explorer_id,
+        type: "booking_confirmed",
+        title: "Booking confirmed!",
+        message: `Your call with ${pathmateName} has been confirmed.`,
+        link: `/bookings`,
+      });
+    } catch {
+      // Don't fail if notification fails
+    }
+
+    return { success: true, meetingUrl };
+  });
+
+/**
+ * Verify and confirm a Razorpay payment. Called from the browser after the
+ * Razorpay Checkout modal succeeds. Verifies the HMAC signature, then marks
+ * the booking paid and generates the meeting URL — mirroring the Stripe flow.
+ */
+export const confirmRazorpayBooking = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      bookingId: string;
+      razorpay_payment_id: string;
+      razorpay_order_id: string;
+      razorpay_signature: string;
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    const sb = createSupabaseClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) throw new Error("You must be logged in.");
+
+    // The booking must belong to this explorer
+    const { data: booking, error: bookingError } = await sb
+      .from("bookings")
+      .select("*")
+      .eq("id", data.bookingId)
+      .eq("explorer_id", user.id)
+      .single();
+
+    if (bookingError || !booking) throw new Error("Booking not found.");
+
+    // Only INR/Razorpay bookings go through this path
+    if (
+      booking.payment_gateway !== "razorpay" ||
+      booking.currency !== "INR"
+    ) {
+      throw new Error("This booking was not created with Razorpay.");
+    }
+    if (booking.razorpay_order_id !== data.razorpay_order_id) {
+      throw new Error(
+        "Razorpay order mismatch — payment could not be verified.",
+      );
+    }
+
+    // Verify the payment signature (HMAC-SHA256 of orderId|paymentId)
+    const valid = verifyRazorpayPayment(
+      data.razorpay_order_id,
+      data.razorpay_payment_id,
+      data.razorpay_signature,
+    );
+    if (!valid) {
+      throw new Error("Payment signature verification failed.");
+    }
+
+    // Generate meeting URL
+    const meetingUrl = `/call/${booking.id}`;
+
+    // Update booking
+    const { error } = await sb
+      .from("bookings")
+      .update({
+        status: "paid",
+        razorpay_order_id: data.razorpay_order_id,
+        razorpay_payment_id: data.razorpay_payment_id,
+        meeting_url: meetingUrl,
+      })
+      .eq("id", booking.id);
+
+    if (error) throw new Error(error.message);
+
+    // Notify the PathMate about the confirmed booking
+    try {
+      const explorerName =
+        user.user_metadata?.full_name || user.email || "An explorer";
+      const amountLabel = formatAmountCents(
+        booking.amount_cents,
+        booking.currency,
+      );
+      await createNotification({
+        userId: booking.pathmate_id,
+        type: "booking_confirmed",
+        title: "New booking request",
+        message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
         link: `/bookings`,
       });
     } catch {

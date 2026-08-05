@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "~/lib/auth";
 import { getBooking, confirmBooking } from "~/lib/bookings";
+import { formatAmountCents } from "~/lib/currency";
 
 export const Route = createFileRoute("/bookings/$bookingId/success")({
   component: BookingSuccessPage,
@@ -49,9 +50,14 @@ function BookingSuccessPage() {
     }
   };
 
-  // Auto-confirm on load
+  // Auto-confirm on load (Stripe flow only — Razorpay bookings are confirmed
+  // by confirmRazorpayBooking immediately after payment)
   useEffect(() => {
     if (booking && booking.status === "pending" && !meetingUrl) {
+      if (booking.payment_gateway === "razorpay") {
+        setLoading(false);
+        return;
+      }
       handleConfirm();
     } else if (booking && booking.status === "paid") {
       setMeetingUrl(booking.meeting_url);
@@ -212,7 +218,9 @@ function BookingSuccessPage() {
             }}
           >
             <span style={{ color: "var(--muted)" }}>Amount</span>
-            <strong>${(booking.amount_cents / 100).toFixed(2)}</strong>
+            <strong>
+              {formatAmountCents(booking.amount_cents, booking.currency)}
+            </strong>
           </div>
           <div
             style={{

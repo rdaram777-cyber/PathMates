@@ -2,13 +2,22 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getAdminStats, type BookingWithNames } from "~/lib/admin";
 import { AdminShell } from "~/components/AdminShell";
+import { formatAmountCents } from "~/lib/currency";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
 });
 
-function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
+function formatCents(cents: number, currency?: string | null): string {
+  return formatAmountCents(cents, currency);
+}
+
+/** Platform revenue card shows USD and INR separately (paise ≠ cents). */
+function formatPlatformRevenue(usdCents: number, inrPaise: number): string {
+  const parts: string[] = [];
+  if (usdCents > 0) parts.push(formatAmountCents(usdCents, "USD"));
+  if (inrPaise > 0) parts.push(formatAmountCents(inrPaise, "INR"));
+  return parts.length > 0 ? parts.join(" + ") : formatAmountCents(0, "USD");
 }
 
 function formatDate(iso: string): string {
@@ -76,7 +85,7 @@ function AdminDashboard() {
       }}>
         <StatCard label="Total Users" value={stats.total_users} />
         <StatCard label="Bookings (This Month)" value={stats.total_bookings} />
-        <StatCard label="Platform Revenue (This Month)" value={formatCents(stats.platform_revenue)} />
+        <StatCard label="Platform Revenue (This Month)" value={formatPlatformRevenue(stats.platform_revenue, stats.platform_revenue_inr)} />
         <StatCard label="Active PathMates" value={stats.active_pathmates} />
       </div>
 
@@ -135,7 +144,7 @@ function AdminDashboard() {
                 <tr key={booking.id} style={{ borderBottom: "1px solid var(--line)" }}>
                   <td style={{ padding: "8px 12px" }}>{booking.explorer?.full_name || "Unknown"}</td>
                   <td style={{ padding: "8px 12px" }}>{booking.pathmate?.full_name || "Unknown"}</td>
-                  <td style={{ padding: "8px 12px" }}>{formatCents(booking.amount_cents)}</td>
+                  <td style={{ padding: "8px 12px" }}>{formatCents(booking.amount_cents, booking.currency)}</td>
                   <td style={{ padding: "8px 12px" }}><StatusBadge status={booking.status} /></td>
                   <td style={{ padding: "8px 12px", color: "var(--muted)", fontSize: "0.85rem" }}>{formatDate(booking.created_at)}</td>
                   <td style={{ padding: "8px 12px" }}>
