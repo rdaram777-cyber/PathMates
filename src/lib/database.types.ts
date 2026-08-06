@@ -133,6 +133,12 @@ export interface Database {
           pathmate_earnings_cents: number;
           stripe_session_id: string | null;
           stripe_payment_status: string;
+          /** ISO 4217 code the booking was paid in: "INR" → Razorpay, "USD" → Stripe. */
+          currency: string;
+          razorpay_order_id: string | null;
+          razorpay_payment_id: string | null;
+          /** Which gateway processed this booking: "stripe" | "razorpay". */
+          payment_gateway: string;
           meeting_url: string | null;
           status: "pending" | "paid" | "completed" | "cancelled" | "refunded";
           created_at: string;
@@ -150,6 +156,10 @@ export interface Database {
           pathmate_earnings_cents: number;
           stripe_session_id?: string | null;
           stripe_payment_status?: string;
+          currency?: string;
+          razorpay_order_id?: string | null;
+          razorpay_payment_id?: string | null;
+          payment_gateway?: string;
           meeting_url?: string | null;
           status?: string;
           created_at?: string;
@@ -167,6 +177,10 @@ export interface Database {
           pathmate_earnings_cents?: number;
           stripe_session_id?: string | null;
           stripe_payment_status?: string;
+          currency?: string;
+          razorpay_order_id?: string | null;
+          razorpay_payment_id?: string | null;
+          payment_gateway?: string;
           meeting_url?: string | null;
           status?: string;
           created_at?: string;

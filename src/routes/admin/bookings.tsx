@@ -2,13 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getAllBookings, refundBooking, type BookingWithNames } from "~/lib/admin";
 import { AdminShell } from "~/components/AdminShell";
+import { formatAmountCents } from "~/lib/currency";
 
 export const Route = createFileRoute("/admin/bookings")({
   component: AdminBookings,
 });
 
-function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
+function formatCents(cents: number, currency?: string | null): string {
+  return formatAmountCents(cents, currency);
 }
 
 function formatDate(iso: string): string {
@@ -166,8 +167,8 @@ function AdminBookings() {
                   <td style={{ padding: "10px 16px", fontSize: "0.82rem", color: "var(--muted)" }}>
                     {formatDate(booking.scheduled_at)}
                   </td>
-                  <td style={{ padding: "10px 16px" }}>{formatCents(booking.amount_cents)}</td>
-                  <td style={{ padding: "10px 16px", color: "var(--muted)" }}>{formatCents(booking.platform_fee_cents)}</td>
+                  <td style={{ padding: "10px 16px" }}>{formatCents(booking.amount_cents, booking.currency)}</td>
+                  <td style={{ padding: "10px 16px", color: "var(--muted)" }}>{formatCents(booking.platform_fee_cents, booking.currency)}</td>
                   <td style={{ padding: "10px 16px" }}><StatusBadge status={booking.status} /></td>
                   <td style={{ padding: "10px 16px" }}>
                     <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>

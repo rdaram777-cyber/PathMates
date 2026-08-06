@@ -17,17 +17,31 @@ export interface BookingWithNames extends Booking {
 export interface AdminStats {
   total_users: number;
   total_bookings: number;
+  /** Platform fee this month in USD cents (INR bookings tracked separately). */
   platform_revenue: number;
+  /** Platform fee this month in INR paise. */
+  platform_revenue_inr: number;
   active_pathmates: number;
   recent_bookings: BookingWithNames[];
 }
 
+/**
+ * Revenue aggregates, kept separate per currency because INR paise and USD
+ * cents cannot be summed meaningfully. Each record maps "USD" | "INR" → amount.
+ */
+export type CurrencyTotals = Record<string, number>;
+
 export interface RevenueStats {
-  total_revenue: number;
-  month_revenue: number;
-  platform_earnings: number;
-  pathmate_payouts: number;
-  daily_revenue: { date: string; revenue: number; platform_fee: number }[];
+  total_revenue: CurrencyTotals;
+  month_revenue: CurrencyTotals;
+  platform_earnings: CurrencyTotals;
+  pathmate_payouts: CurrencyTotals;
+  daily_revenue: {
+    date: string;
+    currency: string;
+    revenue: number;
+    platform_fee: number;
+  }[];
 }
 
 // ---- Auth Guards ----
@@ -92,15 +106,20 @@ export const getAdminStats = createServerFn({ method: "GET" }).handler(
       .eq("status", "paid")
       .gte("created_at", startOfMonth);
 
-    // Platform revenue this month (sum of platform_fee_cents from paid bookings)
+    // Platform revenue this month (sum of platform_fee_cents from paid
+    // bookings, split per currency — INR paise and USD cents are separate)
     const { data: monthBookings } = await sb
       .from("bookings")
-      .select("platform_fee_cents")
+      .select("platform_fee_cents, currency")
       .eq("status", "paid")
       .gte("created_at", startOfMonth);
 
-    const platformRevenue =
-      monthBookings?.reduce((sum, b) => sum + b.platform_fee_cents, 0) ?? 0;
+    let platformRevenue = 0;
+    let platformRevenueInr = 0;
+    for (const b of monthBookings ?? []) {
+      if (b.currency === "INR") platformRevenueInr += b.platform_fee_cents;
+      else platformRevenue += b.platform_fee_cents;
+    }
 
     // Active PathMates (with at least 1 booking)
     const { data: activePathmatesData } = await sb
@@ -124,6 +143,7 @@ export const getAdminStats = createServerFn({ method: "GET" }).handler(
       total_users: totalUsers ?? 0,
       total_bookings: totalBookings ?? 0,
       platform_revenue: platformRevenue,
+      platform_revenue_inr: platformRevenueInr,
       active_pathmates: activePathmateIds.size,
       recent_bookings: (recentBookings as BookingWithNames[]) ?? [],
     };
@@ -199,74 +219,85 @@ export const getRevenueStats = createServerFn({ method: "GET" }).handler(
   async (): Promise<RevenueStats> => {
     await requireAdmin();
     const sb = createSupabaseClient();
-
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    // Aggregates are kept per currency — INR paise and USD cents cannot be
+    // summed meaningfully, so each totals record maps "USD" | "INR" → amount.
+    const sumByCurrency = (
+      rows: {
+        amount_cents: number;
+        platform_fee_cents: number;
+        pathmate_earnings_cents: number;
+        currency: string | null;
+      }[],
+      key: "amount_cents" | "platform_fee_cents" | "pathmate_earnings_cents",
+    ): CurrencyTotals => {
+      const totals: CurrencyTotals = { USD: 0, INR: 0 };
+      for (const r of rows) {
+        const c = r.currency === "INR" ? "INR" : "USD";
+        totals[c] += r[key];
+      }
+      return totals;
+    };
 
     // All time totals
     const { data: allPaid } = await sb
       .from("bookings")
-      .select("amount_cents, platform_fee_cents, pathmate_earnings_cents")
+      .select("amount_cents, platform_fee_cents, pathmate_earnings_cents, currency")
       .eq("status", "paid");
-
-    const totalRevenue =
-      allPaid?.reduce((sum, b) => sum + b.amount_cents, 0) ?? 0;
-    const platformEarnings =
-      allPaid?.reduce((sum, b) => sum + b.platform_fee_cents, 0) ?? 0;
-    const pathmatePayouts =
-      allPaid?.reduce((sum, b) => sum + b.pathmate_earnings_cents, 0) ?? 0;
-
+    const totalRevenue = sumByCurrency(allPaid ?? [], "amount_cents");
+    const platformEarnings = sumByCurrency(
+      allPaid ?? [],
+      "platform_fee_cents",
+    );
+    const pathmatePayouts = sumByCurrency(
+      allPaid ?? [],
+      "pathmate_earnings_cents",
+    );
     // This month
     const { data: monthPaid } = await sb
       .from("bookings")
-      .select("amount_cents")
+      .select("amount_cents, currency")
       .eq("status", "paid")
       .gte("created_at", startOfMonth);
-
-    const monthRevenue =
-      monthPaid?.reduce((sum, b) => sum + b.amount_cents, 0) ?? 0;
-
-    // Daily revenue (last 30 days)
+    const monthRevenue = sumByCurrency(monthPaid ?? [], "amount_cents");
+    // Daily revenue (last 30 days), one row per date + currency
     const thirtyDaysAgo = new Date(
       now.getTime() - 30 * 24 * 60 * 60 * 1000,
     ).toISOString();
-
     const { data: dailyData } = await sb
       .from("bookings")
-      .select("amount_cents, platform_fee_cents, created_at")
+      .select("amount_cents, platform_fee_cents, created_at, currency")
       .eq("status", "paid")
       .gte("created_at", thirtyDaysAgo)
       .order("created_at", { ascending: true });
-
     const dailyMap = new Map<
       string,
       { revenue: number; platform_fee: number }
     >();
-
-    // Initialize all 30 days
+    // Initialize all 30 days x both currencies
     for (let i = 29; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const key = d.toISOString().slice(0, 10);
-      dailyMap.set(key, { revenue: 0, platform_fee: 0 });
+      dailyMap.set(`${key}|USD`, { revenue: 0, platform_fee: 0 });
+      dailyMap.set(`${key}|INR`, { revenue: 0, platform_fee: 0 });
     }
-
     for (const b of dailyData ?? []) {
-      const key = b.created_at.slice(0, 10);
+      const key = `${b.created_at.slice(0, 10)}|${b.currency === "INR" ? "INR" : "USD"}`;
       const entry = dailyMap.get(key);
       if (entry) {
         entry.revenue += b.amount_cents;
         entry.platform_fee += b.platform_fee_cents;
       }
     }
-
-    const dailyRevenue = Array.from(dailyMap.entries()).map(
-      ([date, vals]) => ({
-        date,
+    const dailyRevenue = Array.from(dailyMap.entries())
+      .map(([key, vals]) => ({
+        date: key.split("|")[0],
+        currency: key.split("|")[1],
         revenue: vals.revenue,
         platform_fee: vals.platform_fee,
-      }),
-    );
-
+      }))
+      .filter((d) => d.revenue > 0 || d.platform_fee > 0);
     return {
       total_revenue: totalRevenue,
       month_revenue: monthRevenue,

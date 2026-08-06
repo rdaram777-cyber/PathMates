@@ -6,6 +6,7 @@ import { getBookingReview, createReview, updateReview, deleteReview } from "~/li
 import type { BookingWithDetails } from "~/lib/bookings";
 import type { Review } from "~/lib/reviews";
 import { StarRating } from "~/components/StarRating";
+import { formatAmountCents } from "~/lib/currency";
 
 export const Route = createFileRoute("/bookings/")({
   component: BookingsPage,
@@ -337,8 +338,8 @@ function BookingsPage() {
                         dateStyle: "medium",
                         timeStyle: "short",
                       })}{" "}
-                      · {booking.duration_minutes} min · $
-                      {(booking.amount_cents / 100).toFixed(2)}
+                      · {booking.duration_minutes} min ·{" "}
+                      {formatAmountCents(booking.amount_cents, booking.currency)}
                     </small>
                     {/* Show existing review stars if present */}
                     {existingReview && (
