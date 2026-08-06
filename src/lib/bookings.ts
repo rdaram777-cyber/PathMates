@@ -49,7 +49,9 @@ export type CreateBookingResult =
 export const getPathmateAvailability = createServerFn({ method: "GET" })
   .validator((pathmateId: string) => pathmateId)
   .handler(async ({ data: pathmateId }): Promise<AvailabilitySlot[]> => {
-    const sb = createSupabaseClient();
+    // Public read (any logged-in explorer may view a PathMate's availability
+    // when booking) — service role bypasses the owner-only RLS policy.
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("availability_slots")
       .select("*")
@@ -565,7 +567,9 @@ export const getPathmateProfile = createServerFn({ method: "GET" })
       review_count: number;
       verified: boolean;
     } | null> => {
-      const sb = createSupabaseClient();
+      // Public read of a PathMate's profile (any logged-in explorer can view
+      // it when booking) — service role bypasses the own-profile RLS policy.
+      const sb = createSupabaseClient({ useServiceRole: true });
       const { data, error } = await sb
         .from("profiles")
         .select("id, full_name, avatar_url, bio_short, hourly_rate, avg_rating, review_count, verified")
