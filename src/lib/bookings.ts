@@ -49,7 +49,9 @@ export type CreateBookingResult =
 export const getPathmateAvailability = createServerFn({ method: "GET" })
   .validator((pathmateId: string) => pathmateId)
   .handler(async ({ data: pathmateId }): Promise<AvailabilitySlot[]> => {
-    const sb = createSupabaseClient();
+    // Public read (any logged-in explorer may view a PathMate's availability
+    // when booking) — service role bypasses the owner-only RLS policy.
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("availability_slots")
       .select("*")
@@ -195,7 +197,18 @@ export const createBooking = createServerFn({ method: "POST" })
       .select("id")
       .single();
 
-    if (bookingError) throw new Error(bookingError.message);
+    if (bookingError) {
+      // If the database is missing the Phase 4 payment columns (migration 009
+      // not applied yet), surface a clear message instead of the raw
+      // PostgREST "column does not exist" error.
+      const message = bookingError.message ?? "";
+      if (/currency|payment_gateway|schema cache/i.test(message)) {
+        throw new Error(
+          "Bookings are not fully configured yet — the database is missing required payment columns (migration 009 has not been applied). Please try again later.",
+        );
+      }
+      throw new Error(message);
+    }
 
     const siteUrl = process.env.SITE_URL || "http://localhost:3000";
     const amountLabel = formatAmountCents(amountCents, currency);
@@ -554,7 +567,9 @@ export const getPathmateProfile = createServerFn({ method: "GET" })
       review_count: number;
       verified: boolean;
     } | null> => {
-      const sb = createSupabaseClient();
+      // Public read of a PathMate's profile (any logged-in explorer can view
+      // it when booking) — service role bypasses the own-profile RLS policy.
+      const sb = createSupabaseClient({ useServiceRole: true });
       const { data, error } = await sb
         .from("profiles")
         .select("id, full_name, avatar_url, bio_short, hourly_rate, avg_rating, review_count, verified")
