@@ -35,7 +35,7 @@ function AdminUsers() {
 
   const handleVerifyToggle = async (userId: string) => {
     try {
-      await verifyPathmate(userId);
+      await verifyPathmate({ data: userId });
       loadUsers();
     } catch (e: any) {
       alert(e.message);

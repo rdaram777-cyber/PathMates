@@ -25,7 +25,9 @@ export interface PathmateRating {
 export const getPathmateReviews = createServerFn({ method: "GET" })
   .validator((pathmateId: string) => pathmateId)
   .handler(async ({ data: pathmateId }): Promise<ReviewWithReviewer[]> => {
-    const sb = createSupabaseClient();
+    // Public read (reviews are shown on public profile pages) — service role
+    // bypasses the authenticated-only RLS policy.
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("reviews")
       .select("*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)")
@@ -42,7 +44,8 @@ export const getPathmateReviews = createServerFn({ method: "GET" })
 export const getPathmateRating = createServerFn({ method: "GET" })
   .validator((pathmateId: string) => pathmateId)
   .handler(async ({ data: pathmateId }): Promise<PathmateRating> => {
-    const sb = createSupabaseClient();
+    // Public read — see getPathmateReviews.
+    const sb = createSupabaseClient({ useServiceRole: true });
 
     // Get rating from profiles
     const { data: profile } = await sb
@@ -164,7 +167,7 @@ export const createReview = createServerFn({ method: "POST" })
         type: "new_review",
         title: "New review received",
         message: `${reviewerName} left you a ${data.rating}-star review.`,
-        link: `/profile/$userId`,
+        link: `/profile/${booking.pathmate_id}`,
       });
     } catch {
       // Don't fail the review if notification fails

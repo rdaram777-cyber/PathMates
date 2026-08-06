@@ -51,7 +51,7 @@ function AvailabilityPage() {
   const isOwn = user?.id === userId;
 
   useEffect(() => {
-    getPathmateRating(userId).then(setRatingData).catch(() => {});
+    getPathmateRating({ data: userId }).then(setRatingData).catch(() => {});
   }, [userId]);
 
   useEffect(() => {

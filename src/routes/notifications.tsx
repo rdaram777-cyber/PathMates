@@ -37,7 +37,7 @@ function NotificationsPage() {
   const handleClick = async (notif: Notification) => {
     if (!notif.read) {
       try {
-        await markAsRead(notif.id);
+        await markAsRead({ data: notif.id });
         setNotifications((prev) =>
           prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
         );

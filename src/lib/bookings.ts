@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { createSupabaseClient } from "~/db";
 import {
   calculateCommission,
@@ -210,7 +211,18 @@ export const createBooking = createServerFn({ method: "POST" })
       throw new Error(message);
     }
 
-    const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    // Derive the public site URL from the incoming request so Stripe
+    // success/cancel redirects point at the real origin (the proxied preview
+    // URL or production domain), never localhost. Falls back to SITE_URL env,
+    // then localhost for local development.
+    let siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    try {
+      const req = getRequest();
+      const origin = req.headers.get("origin") || req.headers.get("x-forwarded-proto") + "://" + (req.headers.get("x-forwarded-host") || req.headers.get("host"));
+      if (origin && /^https?:\/\//.test(origin)) siteUrl = origin.replace(/\/$/, "");
+    } catch {
+      // No request context — keep the env/localhost fallback.
+    }
     const amountLabel = formatAmountCents(amountCents, currency);
 
     // Notify the PathMate about the pending booking request

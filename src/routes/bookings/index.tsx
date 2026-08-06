@@ -60,7 +60,7 @@ function BookingsPage() {
     Promise.all(
       explorerPaid.map(async (b) => {
         try {
-          const review = await getBookingReview(b.id);
+          const review = await getBookingReview({ data: b.id });
           return { bookingId: b.id, review };
         } catch {
           return { bookingId: b.id, review: null };
@@ -108,7 +108,7 @@ function BookingsPage() {
       }
 
       // Refresh reviews
-      const updated = await getBookingReview(reviewModal.bookingId);
+      const updated = await getBookingReview({ data: reviewModal.bookingId });
       setBookingReviews((prev) => ({
         ...prev,
         [reviewModal.bookingId]: updated,
@@ -129,7 +129,7 @@ function BookingsPage() {
     setReviewError("");
 
     try {
-      await deleteReview(reviewModal.existingReview.id);
+      await deleteReview({ data: reviewModal.existingReview.id });
       setBookingReviews((prev) => ({
         ...prev,
         [reviewModal.bookingId]: null,
