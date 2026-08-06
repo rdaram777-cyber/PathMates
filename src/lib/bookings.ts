@@ -195,7 +195,18 @@ export const createBooking = createServerFn({ method: "POST" })
       .select("id")
       .single();
 
-    if (bookingError) throw new Error(bookingError.message);
+    if (bookingError) {
+      // If the database is missing the Phase 4 payment columns (migration 009
+      // not applied yet), surface a clear message instead of the raw
+      // PostgREST "column does not exist" error.
+      const message = bookingError.message ?? "";
+      if (/currency|payment_gateway|schema cache/i.test(message)) {
+        throw new Error(
+          "Bookings are not fully configured yet — the database is missing required payment columns (migration 009 has not been applied). Please try again later.",
+        );
+      }
+      throw new Error(message);
+    }
 
     const siteUrl = process.env.SITE_URL || "http://localhost:3000";
     const amountLabel = formatAmountCents(amountCents, currency);

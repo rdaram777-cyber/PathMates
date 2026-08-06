@@ -39,6 +39,10 @@ function BookingSuccessPage() {
     try {
       const result = await confirmBooking({ data: bookingId });
       setMeetingUrl(result.meetingUrl);
+      // Refresh the booking from the server so the status badge flips to
+      // "paid" and any meeting details are reflected in the UI.
+      const updated = await getBooking({ data: bookingId });
+      if (updated) setBooking(updated);
     } catch (err) {
       setError(
         err instanceof Error
