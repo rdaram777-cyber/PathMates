@@ -72,7 +72,7 @@ function AdminBookings() {
   const handleRefund = async (bookingId: string) => {
     if (!confirm("Mark this booking as refunded? This does not process a Stripe refund.")) return;
     try {
-      await refundBooking(bookingId);
+      await refundBooking({ data: bookingId });
       loadBookings();
     } catch (e: any) {
       alert(e.message);

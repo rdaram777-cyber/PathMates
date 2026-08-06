@@ -17,7 +17,7 @@ function AdminSettings() {
   useEffect(() => {
     Promise.all([
       getCommissionPercent(),
-      getPlatformSetting("commission_percent"),
+      getPlatformSetting({ data: "commission_percent" }),
     ]).then(([percent, setting]) => {
       setCommission(percent);
       if (setting) {
@@ -34,7 +34,7 @@ function AdminSettings() {
     setSaving(true);
     setMessage("");
     try {
-      await updateCommission(commission);
+      await updateCommission({ data: commission });
       setLastUpdated(new Date().toLocaleString());
       setMessage("Commission updated successfully!");
     } catch (e: any) {

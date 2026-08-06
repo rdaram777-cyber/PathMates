@@ -18,9 +18,17 @@ function VerifyEmailPage() {
   const handleResend = async () => {
     // Use supabase directly since we're on client
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const email = user?.email ?? "";
+      if (!email) {
+        alert("Could not determine your email. Please log in and try again.");
+        return;
+      }
       const { error } = await supabase.auth.resend({
         type: "signup",
-        email: "", // Supabase will use the email from the pending signup
+        email,
       });
       if (error) {
         alert("Could not resend. Please try again.");
