@@ -9,7 +9,9 @@ import { getPathmateRating, type ReviewWithReviewer } from "~/lib/reviews";
 const getProfile = createServerFn({ method: "GET" })
   .validator((userId: string) => userId)
   .handler(async ({ data: userId }) => {
-    const sb = createSupabaseClient();
+    // Public read — profiles are marketplace-facing pages, so use the
+    // service role to bypass the authenticated-only RLS policy.
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data: profile, error } = await sb
       .from("profiles")
       .select("*")
@@ -22,7 +24,7 @@ const getProfile = createServerFn({ method: "GET" })
   });
 
 export const Route = createFileRoute("/profile/$userId")({
-  loader: ({ params }) => getProfile(params.userId),
+  loader: ({ params }) => getProfile({ data: params.userId }),
   component: ProfileView,
 });
 
@@ -37,7 +39,7 @@ function ProfileView() {
   } | null>(null);
 
   useEffect(() => {
-    getPathmateRating(profile.id).then(setRatingData).catch(() => {});
+    getPathmateRating({ data: profile.id }).then(setRatingData).catch(() => {});
   }, [profile.id]);
 
   if (!profile) {
