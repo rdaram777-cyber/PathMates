@@ -218,6 +218,12 @@ function AppShell() {
             <a href="/#how" style={{ textDecoration: "none", color: "inherit" }}>
               How it works
             </a>
+            <Link to="/about" style={{ textDecoration: "none", color: "inherit" }}>
+              About
+            </Link>
+            <Link to="/faq" style={{ textDecoration: "none", color: "inherit" }}>
+              FAQ
+            </Link>
             <Link to="/share" style={{ textDecoration: "none", color: "inherit" }}>
               Share your experience
             </Link>
@@ -454,6 +460,34 @@ function AppShell() {
           >
             Share your experience
           </Link>
+          <Link
+            to="/about"
+            style={{
+              display: "block",
+              padding: "12px 0",
+              color: "var(--text)",
+              textDecoration: "none",
+              fontWeight: 600,
+              fontSize: "1.1rem",
+            }}
+            onClick={() => setMobileOpen(false)}
+          >
+            About
+          </Link>
+          <Link
+            to="/faq"
+            style={{
+              display: "block",
+              padding: "12px 0",
+              color: "var(--text)",
+              textDecoration: "none",
+              fontWeight: 600,
+              fontSize: "1.1rem",
+            }}
+            onClick={() => setMobileOpen(false)}
+          >
+            FAQ
+          </Link>
 
           <hr style={{ border: "none", borderTop: "1px solid var(--line)", margin: "8px 0" }} />
 
@@ -584,7 +618,50 @@ function AppShell() {
             margin: "auto",
           }}
         >
-          © 2026 PathMates. Built for real journeys.
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "16px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span>© 2026 PathMates. Built for real journeys.</span>
+            <nav
+              style={{
+                display: "flex",
+                gap: "18px",
+                flexWrap: "wrap",
+              }}
+            >
+              <Link
+                to="/about"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                About
+              </Link>
+              <Link
+                to="/faq"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                FAQ
+              </Link>
+              <Link
+                to="/search"
+                search={{ q: "" }}
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Browse experiences
+              </Link>
+              <Link
+                to="/share"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Share your experience
+              </Link>
+            </nav>
+          </div>
         </div>
       </footer>
     </>
