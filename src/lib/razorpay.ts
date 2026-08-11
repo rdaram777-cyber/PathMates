@@ -1,5 +1,5 @@
 import Razorpay from "razorpay";
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
  * Razorpay server helpers — used for ALL payments (INR and USD).
@@ -88,4 +88,42 @@ export function verifyRazorpayPayment(
     .update(`${orderId}|${paymentId}`)
     .digest("hex");
   return expected === signature;
+}
+
+/**
+ * Webhook secret used to verify the `x-razorpay-signature` header on
+ * Razorpay webhook requests. Server-only — never expose this to the client.
+ * This is a SEPARATE secret from the key secret, configured in the Razorpay
+ * dashboard under Settings → Webhooks.
+ */
+export function getRazorpayWebhookSecret(): string {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new Error(
+      "Razorpay webhooks are not configured yet (RAZORPAY_WEBHOOK_SECRET is not set). " +
+        "Add the webhook secret to the server environment to enable webhook verification.",
+    );
+  }
+  return secret;
+}
+
+/**
+ * Verify the `x-razorpay-signature` header on a Razorpay webhook request.
+ * The signature is an HMAC-SHA256 of the RAW request body keyed with the
+ * webhook secret. Always verify against the exact raw body text received —
+ * never a re-serialized JSON object, or the HMAC will not match.
+ * Uses a constant-time comparison to avoid timing attacks.
+ */
+export function verifyRazorpayWebhookSignature(
+  rawBody: string,
+  signature: string,
+): boolean {
+  const secret = getRazorpayWebhookSecret();
+  const expected = createHmac("sha256", secret)
+    .update(rawBody, "utf8")
+    .digest("hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  const providedBuf = Buffer.from(signature ?? "", "hex");
+  if (expectedBuf.length !== providedBuf.length) return false;
+  return timingSafeEqual(expectedBuf, providedBuf);
 }
