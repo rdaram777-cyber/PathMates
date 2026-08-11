@@ -10,7 +10,10 @@ const inputStyle = { width: "100%", border: "1px solid var(--line)", borderRadiu
 const getProfile = createServerFn({ method: "GET" })
   .validator((userId: string) => userId)
   .handler(async ({ data: userId }) => {
-    const sb = createSupabaseClient();
+    // Public read — profiles are marketplace-facing pages, so use the
+    // service role to bypass the authenticated-only RLS policy (matches the
+    // parent profile route loader; ownership is enforced on save via RLS).
+    const sb = createSupabaseClient({ useServiceRole: true });
     const { data: profile, error } = await sb
       .from("profiles")
       .select("*")

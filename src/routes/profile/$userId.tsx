@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { useAuth } from "~/lib/auth";
@@ -41,6 +41,15 @@ function ProfileView() {
   useEffect(() => {
     getPathmateRating({ data: profile.id }).then(setRatingData).catch(() => {});
   }, [profile.id]);
+
+  // Child routes (/profile/$userId/edit, /profile/$userId/availability/) are
+  // standalone pages with their own <main> containers — render them via the
+  // Outlet as the full page instead of nesting them inside this profile view.
+  const routerState = useRouterState();
+  const isChildRoute = routerState.matches.some((m) =>
+    m.routeId.startsWith("/profile/$userId/"),
+  );
+  if (isChildRoute) return <Outlet />;
 
   if (!profile) {
     return (
