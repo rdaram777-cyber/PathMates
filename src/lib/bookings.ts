@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { createSupabaseClient } from "~/db";
 import {
   calculateCommission,
@@ -32,18 +31,26 @@ export interface BookingWithDetails extends Booking {
   pathmate?: { full_name: string | null; avatar_url: string | null } | null;
 }
 
-/** Result of createBooking — the client branches on `gateway`. */
-export type CreateBookingResult =
-  | { gateway: "stripe"; bookingId: string; checkoutUrl: string }
-  | {
-      gateway: "razorpay";
-      bookingId: string;
-      orderId: string;
-      keyId: string;
-      /** Order amount in paise (same unit as cents). */
-      amount: number;
-      currency: "INR";
-    };
+/**
+ * Result of createBooking — every payment now routes through Razorpay
+ * (INR and USD). The client opens the Razorpay Checkout modal with
+ * `orderId` + `keyId` + `amount` + `currency`.
+ */
+export type CreateBookingResult = {
+  gateway: "razorpay";
+  bookingId: string;
+  orderId: string;
+  keyId: string;
+  /** Order amount in the currency's smallest unit (paise/cents). */
+  amount: number;
+  currency: CurrencyCode;
+};
+
+// Phase 7: Razorpay-only payments. `createCheckoutSession` (Stripe) is no
+// longer called for new bookings, but the import is intentionally kept so the
+// Stripe integration can be re-enabled later. Referenced via `void` purely to
+// satisfy `noUnusedLocals` — it is never invoked.
+void createCheckoutSession;
 
 // ---- Availability ----
 
@@ -193,7 +200,7 @@ export const createBooking = createServerFn({ method: "POST" })
         pathmate_earnings_cents: pathmateEarnings,
         status: "pending",
         currency,
-        payment_gateway: currency === "INR" ? "razorpay" : "stripe",
+        payment_gateway: "razorpay",
       })
       .select("id")
       .single();
@@ -211,18 +218,6 @@ export const createBooking = createServerFn({ method: "POST" })
       throw new Error(message);
     }
 
-    // Derive the public site URL from the incoming request so Stripe
-    // success/cancel redirects point at the real origin (the proxied preview
-    // URL or production domain), never localhost. Falls back to SITE_URL env,
-    // then localhost for local development.
-    let siteUrl = process.env.SITE_URL || "http://localhost:3000";
-    try {
-      const req = getRequest();
-      const origin = req.headers.get("origin") || req.headers.get("x-forwarded-proto") + "://" + (req.headers.get("x-forwarded-host") || req.headers.get("host"));
-      if (origin && /^https?:\/\//.test(origin)) siteUrl = origin.replace(/\/$/, "");
-    } catch {
-      // No request context — keep the env/localhost fallback.
-    }
     const amountLabel = formatAmountCents(amountCents, currency);
 
     // Notify the PathMate about the pending booking request
@@ -240,51 +235,25 @@ export const createBooking = createServerFn({ method: "POST" })
       // Don't fail the booking if notification fails
     }
 
-    // Route the payment by currency: INR → Razorpay, USD → Stripe.
-    if (currency === "INR") {
-      // Create a Razorpay order (amount in paise = our INR cents).
-      const order = await createRazorpayOrder(amountCents, booking.id);
+    // ALL payments route through Razorpay — INR and USD alike (Phase 7).
+    // Stripe is no longer called for new bookings; the Stripe integration
+    // stays in the codebase (src/lib/stripe.ts) for reference/rollback.
+    const order = await createRazorpayOrder(amountCents, booking.id, currency);
 
-      // Store the order id on the booking for verification later.
-      await sb
-        .from("bookings")
-        .update({ razorpay_order_id: order.id })
-        .eq("id", booking.id);
-
-      return {
-        gateway: "razorpay",
-        bookingId: booking.id,
-        orderId: order.id,
-        keyId: getRazorpayKeyId(),
-        amount: order.amount,
-        currency: "INR",
-      } as const;
-    }
-
-    // USD → Stripe Checkout (unchanged flow).
-    const { checkoutUrl } = await createCheckoutSession({
-      bookingId: booking.id,
-      explorerId: user.id,
-      pathmateId: data.pathmate_id,
-      pathmateName: data.pathmate_name,
-      experienceId: data.experience_id ?? null,
-      experienceTitle: data.experience_title,
-      amountCents,
-      platformFeeCents: platformFee,
-      pathmateEarningsCents: pathmateEarnings,
-      currency,
-      successUrl: `${siteUrl}/bookings/${booking.id}/success`,
-      cancelUrl: `${siteUrl}/experiences/${data.experience_id ?? ""}`,
-      durationMinutes: data.duration_minutes,
-    });
-
-    // Update booking with Stripe session ID
+    // Store the order id on the booking for verification later.
     await sb
       .from("bookings")
-      .update({ stripe_session_id: checkoutUrl.split("/").pop()?.split("?")[0] })
+      .update({ razorpay_order_id: order.id })
       .eq("id", booking.id);
 
-    return { gateway: "stripe", bookingId: booking.id, checkoutUrl };
+    return {
+      gateway: "razorpay",
+      bookingId: booking.id,
+      orderId: order.id,
+      keyId: getRazorpayKeyId(),
+      amount: order.amount,
+      currency,
+    } as const;
   });
 
 export const getBooking = createServerFn({ method: "GET" })
@@ -433,11 +402,8 @@ export const confirmRazorpayBooking = createServerFn({ method: "POST" })
 
     if (bookingError || !booking) throw new Error("Booking not found.");
 
-    // Only INR/Razorpay bookings go through this path
-    if (
-      booking.payment_gateway !== "razorpay" ||
-      booking.currency !== "INR"
-    ) {
+    // All Razorpay bookings go through this path (INR and USD — Phase 7).
+    if (booking.payment_gateway !== "razorpay") {
       throw new Error("This booking was not created with Razorpay.");
     }
     if (booking.razorpay_order_id !== data.razorpay_order_id) {

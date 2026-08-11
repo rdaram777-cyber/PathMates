@@ -2,7 +2,7 @@ import Razorpay from "razorpay";
 import { createHmac } from "node:crypto";
 
 /**
- * Razorpay server helpers — used only for INR payments.
+ * Razorpay server helpers — used for ALL payments (INR and USD).
  * IMPORTANT: This module is server-only. It must never be imported from
  * client components directly (only from `createServerFn` handler code, which
  * TanStack Start strips from the client bundle).
@@ -48,16 +48,18 @@ export function getRazorpayKeyId(): string {
 }
 
 /**
- * Create a Razorpay order. Razorpay uses paise (1 INR = 100 paise),
- * which is the same unit as our `amount_cents` for INR bookings.
+ * Create a Razorpay order. Razorpay takes the amount in the currency's
+ * smallest unit — paise for INR (1 INR = 100 paise) and cents for USD —
+ * which is the same unit as our `amount_cents` for both currencies.
  */
 export async function createRazorpayOrder(
   amountCents: number,
   bookingId: string,
+  currency: string = "INR",
 ): Promise<RazorpayOrderResult> {
   const order = await getRazorpay().orders.create({
     amount: amountCents,
-    currency: "INR",
+    currency: currency, // "INR" or "USD"
     receipt: bookingId,
   });
 

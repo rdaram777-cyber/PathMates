@@ -83,8 +83,9 @@ function formatTime(t: string): string {
 }
 
 /**
- * Dynamically load the Razorpay Checkout script (loaded only when an INR
- * booking is being paid — keeps it out of the initial bundle).
+ * Dynamically load the Razorpay Checkout script when a booking is being paid
+ * (keeps it out of the initial bundle). All payments — INR and USD — go
+ * through the Razorpay Checkout modal (Phase 7).
  */
 function loadRazorpayCheckoutScript(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -211,13 +212,8 @@ function BookPage() {
         },
       });
 
-      if (result.gateway === "stripe") {
-        // USD → redirect to Stripe Checkout (existing behavior)
-        window.location.href = result.checkoutUrl;
-        return;
-      }
-
-      // INR → open the Razorpay Checkout modal with the server-created order
+      // Every payment — INR and USD — opens the Razorpay Checkout modal
+      // with the server-created order (Phase 7: Razorpay-only).
       await loadRazorpayCheckoutScript();
       const RazorpayCtor = (window as any).Razorpay;
       if (!RazorpayCtor) {
