@@ -123,11 +123,13 @@ export const Route = createFileRoute("/api/razorpay-webhook")({
               booking.currency,
             );
             await notify({
-              userId: booking.pathmate_id,
-              type: "booking_confirmed",
-              title: "New booking request",
-              message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
-              link: `/bookings`,
+              data: {
+                userId: booking.pathmate_id,
+                type: "booking_confirmed",
+                title: "New booking request",
+                message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
+                link: `/bookings`,
+              },
             });
           } catch {
             // Don't fail the webhook if a notification fails.
@@ -140,11 +142,13 @@ export const Route = createFileRoute("/api/razorpay-webhook")({
               "your PathMate",
             );
             await notify({
-              userId: booking.explorer_id,
-              type: "booking_confirmed",
-              title: "Booking confirmed!",
-              message: `Your call with ${pathmateName} has been confirmed.`,
-              link: `/bookings`,
+              data: {
+                userId: booking.explorer_id,
+                type: "booking_confirmed",
+                title: "Booking confirmed!",
+                message: `Your call with ${pathmateName} has been confirmed.`,
+                link: `/bookings`,
+              },
             });
           } catch {
             // Don't fail the webhook if a notification fails.
@@ -192,11 +196,13 @@ export const Route = createFileRoute("/api/razorpay-webhook")({
           // Notify the Explorer that payment failed.
           try {
             await notify({
-              userId: booking.explorer_id,
-              type: "system",
-              title: "Payment failed",
-              message: `Your payment for the ${booking.duration_minutes}-minute call was not completed. The booking has been cancelled — you can try again.`,
-              link: `/bookings`,
+              data: {
+                userId: booking.explorer_id,
+                type: "system",
+                title: "Payment failed",
+                message: `Your payment for the ${booking.duration_minutes}-minute call was not completed. The booking has been cancelled — you can try again.`,
+                link: `/bookings`,
+              },
             });
           } catch {
             // Don't fail the webhook if a notification fails.
@@ -224,7 +230,7 @@ type NotificationInput = {
 // fetcher lag the validator payload, so type it loosely here (runtime shape
 // matches, as used by confirmRazorpayBooking in src/lib/bookings.ts).
 const notify = createNotification as unknown as (
-  input: NotificationInput,
+  input: { data: NotificationInput },
 ) => Promise<unknown>;
 
 /** Resolve a user's display name from their profile, with a fallback. */
