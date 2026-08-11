@@ -98,7 +98,9 @@ function AppShell() {
   // Check if user is admin
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
-    supabase.from("profiles").select("role").eq("id", user.id).single()
+    void Promise.resolve(
+      supabase.from("profiles").select("role").eq("id", user.id).single(),
+    )
       .then(({ data }) => setIsAdmin(data?.role === "admin"))
       .catch(() => setIsAdmin(false));
   }, [user]);

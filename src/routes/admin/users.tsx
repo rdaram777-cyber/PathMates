@@ -15,7 +15,12 @@ function AdminUsers() {
 
   const loadUsers = () => {
     setLoading(true);
-    getAllUsers({ search: search || undefined, role: roleFilter !== "all" ? roleFilter : undefined })
+    getAllUsers({
+      data: {
+        search: search || undefined,
+        role: roleFilter !== "all" ? roleFilter : undefined,
+      },
+    })
       .then(setUsers)
       .finally(() => setLoading(false));
   };
@@ -26,7 +31,7 @@ function AdminUsers() {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      await updateUserRole({ userId, role: newRole });
+      await updateUserRole({ data: { userId, role: newRole } });
       loadUsers();
     } catch (e: any) {
       alert(e.message);

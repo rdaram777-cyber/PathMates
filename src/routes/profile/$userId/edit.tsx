@@ -33,7 +33,7 @@ function EditProfile() {
 
   const [fullName, setFullName] = useState(profile.full_name ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
-  const [bioShort, setBioShort] = useState(profile.bio_short ?? "");
+  const [bioShort] = useState(profile.bio_short ?? "");
   const [country, setCountry] = useState(profile.country ?? "");
   const [yearsOfExperience, setYearsOfExperience] = useState(profile.years_of_experience?.toString() ?? "");
   const [currentRole, setCurrentRole] = useState(profile.current_role ?? "");

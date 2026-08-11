@@ -225,11 +225,13 @@ export const createBooking = createServerFn({ method: "POST" })
       const explorerName =
         user.user_metadata?.full_name || user.email || "An explorer";
       await createNotification({
-        userId: data.pathmate_id,
-        type: "booking_confirmed",
-        title: "New booking request",
-        message: `${explorerName} has requested a ${data.duration_minutes}-minute call${data.experience_title ? ` about "${data.experience_title}"` : ""} (${amountLabel}).`,
-        link: `/bookings`,
+        data: {
+          userId: data.pathmate_id,
+          type: "booking_confirmed",
+          title: "New booking request",
+          message: `${explorerName} has requested a ${data.duration_minutes}-minute call${data.experience_title ? ` about "${data.experience_title}"` : ""} (${amountLabel}).`,
+          link: `/bookings`,
+        },
       });
     } catch {
       // Don't fail the booking if notification fails
@@ -339,11 +341,13 @@ export const confirmBooking = createServerFn({ method: "POST" })
         booking.currency,
       );
       await createNotification({
-        userId: booking.pathmate_id,
-        type: "booking_confirmed",
-        title: "New booking request",
-        message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
-        link: `/bookings`,
+        data: {
+          userId: booking.pathmate_id,
+          type: "booking_confirmed",
+          title: "New booking request",
+          message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
+          link: `/bookings`,
+        },
       });
     } catch {
       // Don't fail the booking if notification fails
@@ -358,11 +362,13 @@ export const confirmBooking = createServerFn({ method: "POST" })
         .single();
       const pathmateName = pathmateProfile?.full_name || "your PathMate";
       await createNotification({
-        userId: booking.explorer_id,
-        type: "booking_confirmed",
-        title: "Booking confirmed!",
-        message: `Your call with ${pathmateName} has been confirmed.`,
-        link: `/bookings`,
+        data: {
+          userId: booking.explorer_id,
+          type: "booking_confirmed",
+          title: "Booking confirmed!",
+          message: `Your call with ${pathmateName} has been confirmed.`,
+          link: `/bookings`,
+        },
       });
     } catch {
       // Don't fail if notification fails
@@ -447,11 +453,13 @@ export const confirmRazorpayBooking = createServerFn({ method: "POST" })
         booking.currency,
       );
       await createNotification({
-        userId: booking.pathmate_id,
-        type: "booking_confirmed",
-        title: "New booking request",
-        message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
-        link: `/bookings`,
+        data: {
+          userId: booking.pathmate_id,
+          type: "booking_confirmed",
+          title: "New booking request",
+          message: `${explorerName} has booked a ${booking.duration_minutes}-minute call (${amountLabel}) with you.`,
+          link: `/bookings`,
+        },
       });
     } catch {
       // Don't fail the booking if notification fails
@@ -466,11 +474,13 @@ export const confirmRazorpayBooking = createServerFn({ method: "POST" })
         .single();
       const pathmateName = pathmateProfile?.full_name || "your PathMate";
       await createNotification({
-        userId: booking.explorer_id,
-        type: "booking_confirmed",
-        title: "Booking confirmed!",
-        message: `Your call with ${pathmateName} has been confirmed.`,
-        link: `/bookings`,
+        data: {
+          userId: booking.explorer_id,
+          type: "booking_confirmed",
+          title: "Booking confirmed!",
+          message: `Your call with ${pathmateName} has been confirmed.`,
+          link: `/bookings`,
+        },
       });
     } catch {
       // Don't fail if notification fails
@@ -490,7 +500,7 @@ export const getUserBookings = createServerFn({ method: "GET" }).handler(
     // Use admin client to query across both roles
     // Since RLS only allows select by explorer_id OR pathmate_id,
     // we need to handle this with two queries
-    const { data: asExplorer, error: explorerErr } = await sb
+    const { data: asExplorer } = await sb
       .from("bookings")
       .select(
         "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",
@@ -498,7 +508,7 @@ export const getUserBookings = createServerFn({ method: "GET" }).handler(
       .eq("explorer_id", user.id)
       .order("scheduled_at", { ascending: false });
 
-    const { data: asPathmate, error: pathmateErr } = await sb
+    const { data: asPathmate } = await sb
       .from("bookings")
       .select(
         "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",

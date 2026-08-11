@@ -27,7 +27,7 @@ export function createSupabaseServerClient(request: Request) {
       getAll() {
         return parseCookieHeader(request.headers.get("Cookie") ?? "");
       },
-      setAll(cookies) {
+      setAll(_cookies) {
         // SSR clients can't set cookies on the response from here;
         // use the route-level cookie helpers instead for mutations.
         // This is used for read-only auth checks.

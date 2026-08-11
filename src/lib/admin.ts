@@ -171,7 +171,7 @@ export const getAllUsers = createServerFn({ method: "GET" })
     }
 
     if (role && role !== "all") {
-      query = query.eq("role", role);
+      query = query.eq("role", role as Profile["role"]);
     }
 
     const { data, error } = await query.limit(200);
@@ -223,14 +223,21 @@ export const getRevenueStats = createServerFn({ method: "GET" }).handler(
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     // Aggregates are kept per currency — INR paise and USD cents cannot be
     // summed meaningfully, so each totals record maps "USD" | "INR" → amount.
-    const sumByCurrency = (
-      rows: {
-        amount_cents: number;
-        platform_fee_cents: number;
-        pathmate_earnings_cents: number;
-        currency: string | null;
-      }[],
-      key: "amount_cents" | "platform_fee_cents" | "pathmate_earnings_cents",
+    const sumByCurrency = <
+      K extends
+        | "amount_cents"
+        | "platform_fee_cents"
+        | "pathmate_earnings_cents",
+    >(
+      rows: ({ currency: string | null } & Pick<
+        {
+          amount_cents: number;
+          platform_fee_cents: number;
+          pathmate_earnings_cents: number;
+        },
+        K
+      >)[],
+      key: K,
     ): CurrencyTotals => {
       const totals: CurrencyTotals = { USD: 0, INR: 0 };
       for (const r of rows) {

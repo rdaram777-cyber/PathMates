@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "~/lib/auth";
 import { StarRatingInline } from "~/components/StarRating";
@@ -32,15 +32,6 @@ export const Route = createFileRoute("/book/$experienceId/")({
   component: BookPage,
 });
 
-const DAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 
 function getAvailableDates(slots: any[], daysAhead: number): Date[] {
   const availableDays = new Set(slots.map((s) => s.day_of_week));
@@ -106,7 +97,6 @@ function loadRazorpayCheckoutScript(): Promise<void> {
 function BookPage() {
   const { experience, profile, slots } = Route.useLoaderData();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
