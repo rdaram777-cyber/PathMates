@@ -44,6 +44,37 @@ export interface RevenueStats {
   }[];
 }
 
+/**
+ * Admin queries previously embedded `profiles(...)` from bookings,
+ * experiences and reviews — but those tables' user columns point at
+ * auth.users(id), not public.profiles(id), so PostgREST cannot resolve the
+ * embed (PGRST200) and the queries fail. Fetch the needed profile columns
+ * explicitly and attach them in memory under the same keys.
+ */
+async function attachProfileNames(
+  sb: ReturnType<typeof createSupabaseClient>,
+  rows: any[],
+  key: string,
+  idColumn: string,
+) {
+  if (rows.length === 0) return;
+  const ids = [
+    ...new Set(rows.map((r) => r[idColumn]).filter(Boolean)),
+  ] as string[];
+  if (ids.length === 0) return;
+  const { data: profiles } = await sb
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", ids);
+  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+  for (const row of rows) {
+    const profile = byId.get(row[idColumn]);
+    row[key] = profile
+      ? { full_name: profile.full_name, avatar_url: profile.avatar_url }
+      : null;
+  }
+}
+
 // ---- Auth Guards ----
 
 async function getCurrentProfile() {
@@ -133,11 +164,13 @@ export const getAdminStats = createServerFn({ method: "GET" }).handler(
     // Recent bookings (last 10)
     const { data: recentBookings } = await sb
       .from("bookings")
-      .select(
-        "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",
-      )
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(10);
+
+    const recent = (recentBookings as BookingWithNames[]) ?? [];
+    await attachProfileNames(sb, recent, "explorer", "explorer_id");
+    await attachProfileNames(sb, recent, "pathmate", "pathmate_id");
 
     return {
       total_users: totalUsers ?? 0,
@@ -145,7 +178,7 @@ export const getAdminStats = createServerFn({ method: "GET" }).handler(
       platform_revenue: platformRevenue,
       platform_revenue_inr: platformRevenueInr,
       active_pathmates: activePathmateIds.size,
-      recent_bookings: (recentBookings as BookingWithNames[]) ?? [],
+      recent_bookings: recent,
     };
   },
 );
@@ -191,9 +224,7 @@ export const getAllBookings = createServerFn({ method: "GET" })
 
     let query = sb
       .from("bookings")
-      .select(
-        "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",
-      )
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -201,16 +232,25 @@ export const getAllBookings = createServerFn({ method: "GET" })
       query = query.eq("status", status);
     }
 
-    if (search) {
-      const term = `%${search}%`;
-      query = query.or(
-        `explorer.full_name.ilike.${term},pathmate.full_name.ilike.${term}`,
-      );
-    }
-
     const { data, error } = await query;
     if (error) return [];
-    return (data as BookingWithNames[]) ?? [];
+
+    const bookings = (data as BookingWithNames[]) ?? [];
+    await attachProfileNames(sb, bookings, "explorer", "explorer_id");
+    await attachProfileNames(sb, bookings, "pathmate", "pathmate_id");
+
+    // The old search filtered on the embedded `explorer.full_name` /
+    // `pathmate.full_name` — now that the embed is gone (no FK), apply the
+    // same case-insensitive contains filter in memory.
+    if (search) {
+      const term = search.toLowerCase();
+      return bookings.filter(
+        (b) =>
+          (b.explorer?.full_name ?? "").toLowerCase().includes(term) ||
+          (b.pathmate?.full_name ?? "").toLowerCase().includes(term),
+      );
+    }
+    return bookings;
   });
 
 // ---- Revenue Stats ----
@@ -428,12 +468,14 @@ export const getAllExperiences = createServerFn({ method: "GET" }).handler(
 
     const { data, error } = await sb
       .from("experiences")
-      .select("*, profiles(full_name, avatar_url), categories(name, slug)")
+      .select("*, categories(name, slug)")
       .order("created_at", { ascending: false })
       .limit(200);
 
     if (error) return [];
-    return (data as any[]) ?? [];
+    const experiences = (data as any[]) ?? [];
+    await attachProfileNames(sb, experiences, "profiles", "user_id");
+    return experiences;
   },
 );
 
@@ -446,14 +488,15 @@ export const getAllReviews = createServerFn({ method: "GET" }).handler(
 
     const { data, error } = await sb
       .from("reviews")
-      .select(
-        "*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url), pathmate:profiles!reviews_pathmate_id_fkey(full_name, avatar_url)",
-      )
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(200);
 
     if (error) return [];
-    return (data as any[]) ?? [];
+    const reviews = (data as any[]) ?? [];
+    await attachProfileNames(sb, reviews, "reviewer", "reviewer_id");
+    await attachProfileNames(sb, reviews, "pathmate", "pathmate_id");
+    return reviews;
   },
 );
 

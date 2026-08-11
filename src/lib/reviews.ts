@@ -14,6 +14,32 @@ export interface ReviewWithReviewer extends Review {
   } | null;
 }
 
+/**
+ * reviews.reviewer_id / pathmate_id point at auth.users(id), not
+ * public.profiles(id), so PostgREST cannot embed
+ * `profiles!reviews_..._fkey` (PGRST200). We fetch reviewer names with an
+ * explicit query and attach them in memory under the same `reviewer` key.
+ */
+async function attachReviewers(
+  sb: ReturnType<typeof createSupabaseClient>,
+  rows: ReviewWithReviewer[],
+): Promise<ReviewWithReviewer[]> {
+  if (rows.length === 0) return rows;
+  const ids = [...new Set(rows.map((r) => r.reviewer_id))];
+  const { data: profiles } = await sb
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", ids);
+  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+  for (const row of rows) {
+    const reviewer = byId.get(row.reviewer_id);
+    row.reviewer = reviewer
+      ? { full_name: reviewer.full_name, avatar_url: reviewer.avatar_url }
+      : null;
+  }
+  return rows;
+}
+
 export interface PathmateRating {
   avg_rating: number;
   review_count: number;
@@ -30,13 +56,13 @@ export const getPathmateReviews = createServerFn({ method: "GET" })
     const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("reviews")
-      .select("*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)")
+      .select("*")
       .eq("pathmate_id", pathmateId)
       .order("created_at", { ascending: false })
       .limit(50);
 
     if (error) return [];
-    return (data as ReviewWithReviewer[]) ?? [];
+    return await attachReviewers(sb, (data as ReviewWithReviewer[]) ?? []);
   });
 
 // ---- Get rating summary for a PathMate ----
@@ -57,9 +83,7 @@ export const getPathmateRating = createServerFn({ method: "GET" })
     // Get recent reviews (last 3)
     const { data: reviews } = await sb
       .from("reviews")
-      .select(
-        "*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)",
-      )
+      .select("*")
       .eq("pathmate_id", pathmateId)
       .order("created_at", { ascending: false })
       .limit(3);
@@ -67,7 +91,10 @@ export const getPathmateRating = createServerFn({ method: "GET" })
     return {
       avg_rating: profile?.avg_rating ?? 0,
       review_count: profile?.review_count ?? 0,
-      recent_reviews: (reviews as ReviewWithReviewer[]) ?? [],
+      recent_reviews: await attachReviewers(
+        sb,
+        (reviews as ReviewWithReviewer[]) ?? [],
+      ),
     };
   });
 
