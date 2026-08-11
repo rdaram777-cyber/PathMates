@@ -141,6 +141,54 @@
     }
   }
 
+  /* FAQ accordion (details/summary, no JS deps) */
+  .faq-item {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    overflow: hidden;
+  }
+
+  .faq-item summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+    user-select: none;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item[open] summary {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .faq-item .faq-chevron {
+    flex-shrink: 0;
+    color: var(--accent);
+    transition: transform 0.2s ease;
+    font-size: 0.85rem;
+  }
+
+  .faq-item[open] .faq-chevron {
+    transform: rotate(180deg);
+  }
+
+  .faq-item .faq-body {
+    padding: 16px 22px 20px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
   /* Notification badge */
   .notif-badge {
     position: absolute;
