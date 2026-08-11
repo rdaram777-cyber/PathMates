@@ -21,17 +21,73 @@ export type Category =
 
 // ---- Public reads (no auth required) ----
 
+/**
+ * The experiences.user_id column points at auth.users(id), not
+ * public.profiles(id), so PostgREST cannot embed `profiles(...)` from
+ * experiences (PGRST200 "could not find a relationship"). We therefore
+ * fetch the experiences with only the `categories` embed (whose FK exists)
+ * and resolve profile details with an explicit second query, merging the
+ * result in memory so the returned shape is identical to the old embed.
+ */
+
+async function attachProfiles(
+  sb: ReturnType<typeof createSupabaseClient>,
+  rows: ExperienceWithDetails[],
+): Promise<ExperienceWithDetails[]> {
+  if (rows.length === 0) return rows;
+  const userIds = [...new Set(rows.map((r) => r.user_id))];
+  const { data: profiles } = await sb
+    .from("profiles")
+    .select("id, full_name, avatar_url, avg_rating, review_count, verified")
+    .in("id", userIds);
+  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+  for (const row of rows) {
+    const profile = byId.get(row.user_id);
+    row.profiles = profile
+      ? {
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+          avg_rating: profile.avg_rating,
+          review_count: profile.review_count,
+          verified: profile.verified,
+        }
+      : null;
+  }
+  return rows;
+}
+
+async function attachProfile(
+  sb: ReturnType<typeof createSupabaseClient>,
+  row: ExperienceWithDetails,
+): Promise<ExperienceWithDetails> {
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("full_name, avatar_url, avg_rating, review_count, verified")
+    .eq("id", row.user_id)
+    .maybeSingle();
+  row.profiles = profile
+    ? {
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
+        avg_rating: profile.avg_rating,
+        review_count: profile.review_count,
+        verified: profile.verified,
+      }
+    : null;
+  return row;
+}
+
 export const getExperiences = createServerFn({ method: "GET" }).handler(
   async (): Promise<ExperienceWithDetails[]> => {
     const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("experiences")
-      .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
+      .select("*, categories(name, slug)")
       .order("created_at", { ascending: false })
       .limit(20);
 
     if (error) return [];
-    return (data as ExperienceWithDetails[]) ?? [];
+    return await attachProfiles(sb, (data as ExperienceWithDetails[]) ?? []);
   },
 );
 
@@ -41,12 +97,12 @@ export const getExperience = createServerFn({ method: "GET" })
     const sb = createSupabaseClient({ useServiceRole: true });
     const { data, error } = await sb
       .from("experiences")
-      .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
+      .select("*, categories(name, slug)")
       .eq("id", id)
       .single();
 
     if (error || !data) return null;
-    return data as ExperienceWithDetails;
+    return await attachProfile(sb, data as ExperienceWithDetails);
   });
 
 export const searchExperiences = createServerFn({ method: "GET" })
@@ -58,7 +114,7 @@ export const searchExperiences = createServerFn({ method: "GET" })
     // Search across title, content, and category name
     const { data, error } = await sb
       .from("experiences")
-      .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories!inner(name, slug)")
+      .select("*, categories!inner(name, slug)")
       .or(`title.ilike.${term},content.ilike.${term},categories.name.ilike.${term}`)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -67,16 +123,19 @@ export const searchExperiences = createServerFn({ method: "GET" })
       // Fallback: try searching without category join
       const { data: fallbackData, error: fallbackError } = await sb
         .from("experiences")
-        .select("*, profiles(full_name, avatar_url, avg_rating, review_count, verified), categories(name, slug)")
+        .select("*, categories(name, slug)")
         .or(`title.ilike.${term},content.ilike.${term}`)
         .order("created_at", { ascending: false })
         .limit(50);
 
       if (fallbackError) return [];
-      return (fallbackData as ExperienceWithDetails[]) ?? [];
+      return await attachProfiles(
+        sb,
+        (fallbackData as ExperienceWithDetails[]) ?? [],
+      );
     }
 
-    return (data as ExperienceWithDetails[]) ?? [];
+    return await attachProfiles(sb, (data as ExperienceWithDetails[]) ?? []);
   });
 
 export const getCategories = createServerFn({ method: "GET" }).handler(

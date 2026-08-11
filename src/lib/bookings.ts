@@ -32,6 +32,40 @@ export interface BookingWithDetails extends Booking {
 }
 
 /**
+ * bookings.explorer_id / pathmate_id point at auth.users(id), not
+ * public.profiles(id), so PostgREST cannot embed `profiles!bookings_..._fkey`
+ * (PGRST200). We fetch profile names with an explicit query and attach them
+ * in memory, keeping the same `explorer` / `pathmate` keys components use.
+ */
+async function attachUserNames(
+  sb: ReturnType<typeof createSupabaseClient>,
+  rows: any[],
+) {
+  if (rows.length === 0) return;
+  const ids = new Set<string>();
+  for (const row of rows) {
+    if (row.explorer_id) ids.add(row.explorer_id);
+    if (row.pathmate_id) ids.add(row.pathmate_id);
+  }
+  if (ids.size === 0) return;
+  const { data: profiles } = await sb
+    .from("profiles")
+    .select("id, full_name, avatar_url")
+    .in("id", [...ids]);
+  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+  for (const row of rows) {
+    const explorer = byId.get(row.explorer_id);
+    const pathmate = byId.get(row.pathmate_id);
+    row.explorer = explorer
+      ? { full_name: explorer.full_name, avatar_url: explorer.avatar_url }
+      : null;
+    row.pathmate = pathmate
+      ? { full_name: pathmate.full_name, avatar_url: pathmate.avatar_url }
+      : null;
+  }
+}
+
+/**
  * Result of createBooking — every payment now routes through Razorpay
  * (INR and USD). The client opens the Razorpay Checkout modal with
  * `orderId` + `keyId` + `amount` + `currency`.
@@ -269,7 +303,7 @@ export const getBooking = createServerFn({ method: "GET" })
 
     const { data, error } = await sb
       .from("bookings")
-      .select("*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)")
+      .select("*")
       .eq("id", id)
       .single();
 
@@ -281,6 +315,7 @@ export const getBooking = createServerFn({ method: "GET" })
       return null;
     }
 
+    await attachUserNames(sb, [booking]);
     return booking as BookingWithDetails;
   });
 
@@ -502,17 +537,13 @@ export const getUserBookings = createServerFn({ method: "GET" }).handler(
     // we need to handle this with two queries
     const { data: asExplorer } = await sb
       .from("bookings")
-      .select(
-        "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",
-      )
+      .select("*")
       .eq("explorer_id", user.id)
       .order("scheduled_at", { ascending: false });
 
     const { data: asPathmate } = await sb
       .from("bookings")
-      .select(
-        "*, explorer:profiles!bookings_explorer_id_fkey(full_name, avatar_url), pathmate:profiles!bookings_pathmate_id_fkey(full_name, avatar_url)",
-      )
+      .select("*")
       .eq("pathmate_id", user.id)
       .order("scheduled_at", { ascending: false });
 
@@ -534,6 +565,7 @@ export const getUserBookings = createServerFn({ method: "GET" }).handler(
         new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime(),
     );
 
+    await attachUserNames(sb, unique);
     return unique as BookingWithDetails[];
   },
 );
