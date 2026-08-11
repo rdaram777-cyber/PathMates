@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useAuth } from "~/lib/auth";
 import { createExperience, getCategories, type Category } from "~/lib/experiences";
 

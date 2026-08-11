@@ -65,7 +65,7 @@ export async function createRazorpayOrder(
 
   return {
     id: order.id,
-    amount: order.amount,
+    amount: Number(order.amount),
     currency: order.currency,
     receipt: order.receipt ?? bookingId,
     status: order.status,

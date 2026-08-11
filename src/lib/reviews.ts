@@ -163,11 +163,13 @@ export const createReview = createServerFn({ method: "POST" })
     try {
       const reviewerName = user.user_metadata?.full_name || user.email || "An explorer";
       await createNotification({
-        userId: booking.pathmate_id,
-        type: "new_review",
-        title: "New review received",
-        message: `${reviewerName} left you a ${data.rating}-star review.`,
-        link: `/profile/${booking.pathmate_id}`,
+        data: {
+          userId: booking.pathmate_id,
+          type: "new_review",
+          title: "New review received",
+          message: `${reviewerName} left you a ${data.rating}-star review.`,
+          link: `/profile/${booking.pathmate_id}`,
+        },
       });
     } catch {
       // Don't fail the review if notification fails

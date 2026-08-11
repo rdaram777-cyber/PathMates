@@ -6,6 +6,16 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+/**
+ * PathMates public schema — mirrors the real Supabase project
+ * (supabase/migrations/all-migrations.sql, migrations 001-009).
+ *
+ * NOTE ON RELATIONSHIPS: user_id-style foreign keys reference auth.users in
+ * the database, but the application joins them to public.profiles
+ * (e.g. `profiles(...)`, `explorer:profiles!bookings_explorer_id_fkey(...)`).
+ * The Relationships arrays below declare those joins as the code uses them so
+ * the type-level select parser resolves embedded resources.
+ */
 export interface Database {
   public: {
     Tables: {
@@ -70,6 +80,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       categories: {
         Row: {
@@ -90,6 +101,7 @@ export interface Database {
           slug?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       experiences: {
         Row: {
@@ -119,6 +131,22 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "experiences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne?: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "experiences_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne?: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       bookings: {
         Row: {
@@ -133,16 +161,14 @@ export interface Database {
           pathmate_earnings_cents: number;
           stripe_session_id: string | null;
           stripe_payment_status: string;
-          /** ISO 4217 code the booking was paid in: "INR" → Razorpay, "USD" → Stripe. */
+          meeting_url: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
           currency: string;
           razorpay_order_id: string | null;
           razorpay_payment_id: string | null;
-          /** Which gateway processed this booking: "stripe" | "razorpay". */
           payment_gateway: string;
-          meeting_url: string | null;
-          status: "pending" | "paid" | "completed" | "cancelled" | "refunded";
-          created_at: string;
-          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -156,14 +182,14 @@ export interface Database {
           pathmate_earnings_cents: number;
           stripe_session_id?: string | null;
           stripe_payment_status?: string;
-          currency?: string;
-          razorpay_order_id?: string | null;
-          razorpay_payment_id?: string | null;
-          payment_gateway?: string;
           meeting_url?: string | null;
           status?: string;
           created_at?: string;
           updated_at?: string;
+          currency?: string;
+          razorpay_order_id?: string | null;
+          razorpay_payment_id?: string | null;
+          payment_gateway?: string;
         };
         Update: {
           id?: string;
@@ -177,15 +203,38 @@ export interface Database {
           pathmate_earnings_cents?: number;
           stripe_session_id?: string | null;
           stripe_payment_status?: string;
-          currency?: string;
-          razorpay_order_id?: string | null;
-          razorpay_payment_id?: string | null;
-          payment_gateway?: string;
           meeting_url?: string | null;
           status?: string;
           created_at?: string;
           updated_at?: string;
+          currency?: string;
+          razorpay_order_id?: string | null;
+          razorpay_payment_id?: string | null;
+          payment_gateway?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "bookings_explorer_id_fkey";
+            columns: ["explorer_id"];
+            isOneToOne?: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bookings_pathmate_id_fkey";
+            columns: ["pathmate_id"];
+            isOneToOne?: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bookings_experience_id_fkey";
+            columns: ["experience_id"];
+            isOneToOne?: false;
+            referencedRelation: "experiences";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       availability_slots: {
         Row: {
@@ -212,6 +261,7 @@ export interface Database {
           end_time?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       reviews: {
         Row: {
@@ -241,6 +291,29 @@ export interface Database {
           content?: string | null;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: true;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey";
+            columns: ["reviewer_id"];
+            isOneToOne?: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reviews_pathmate_id_fkey";
+            columns: ["pathmate_id"];
+            isOneToOne?: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       platform_settings: {
         Row: {
@@ -258,6 +331,40 @@ export interface Database {
           value?: string;
           updated_at?: string;
         };
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          message: string | null;
+          link: string | null;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          title: string;
+          message?: string | null;
+          link?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: string;
+          title?: string;
+          message?: string | null;
+          link?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

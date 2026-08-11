@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getRevenueStats, type CurrencyTotals } from "~/lib/admin";
 import { AdminShell } from "~/components/AdminShell";
-import { currencySymbol, formatAmountCents } from "~/lib/currency";
+import { formatAmountCents } from "~/lib/currency";
 
 export const Route = createFileRoute("/admin/revenue")({
   component: AdminRevenue,
@@ -102,7 +102,6 @@ function AdminRevenue() {
               <tbody>
                 {stats.daily_revenue.map((day) => {
                   const pathmatePayout = day.revenue - day.platform_fee;
-                  const symbol = currencySymbol(day.currency);
                   return (
                     <tr key={`${day.date}|${day.currency}`} style={{ borderBottom: "1px solid var(--line)" }}>
                       <td style={{ padding: "10px 20px", fontWeight: 500 }}>{day.date}</td>

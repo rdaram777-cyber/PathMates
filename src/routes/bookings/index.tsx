@@ -95,15 +95,19 @@ function BookingsPage() {
     try {
       if (reviewModal.existingReview) {
         await updateReview({
-          review_id: reviewModal.existingReview.id,
-          rating: reviewRating,
-          content: reviewContent || undefined,
+          data: {
+            review_id: reviewModal.existingReview.id,
+            rating: reviewRating,
+            content: reviewContent || undefined,
+          },
         });
       } else {
         await createReview({
-          booking_id: reviewModal.bookingId,
-          rating: reviewRating,
-          content: reviewContent || undefined,
+          data: {
+            booking_id: reviewModal.bookingId,
+            rating: reviewRating,
+            content: reviewContent || undefined,
+          },
         });
       }
 

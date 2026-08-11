@@ -58,8 +58,10 @@ function AdminBookings() {
   const loadBookings = () => {
     setLoading(true);
     getAllBookings({
-      status: statusFilter !== "all" ? statusFilter : undefined,
-      search: search || undefined,
+      data: {
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        search: search || undefined,
+      },
     })
       .then(setBookings)
       .finally(() => setLoading(false));
