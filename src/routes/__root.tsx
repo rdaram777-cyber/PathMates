@@ -31,6 +31,11 @@ export const Route = createRootRoute({
           "Find people who have actually lived through the experience you're considering.",
       },
       { property: "og:type", content: "website" },
+      {
+        property: "og:url",
+        content: "https://site-virid-eight-86.vercel.app/",
+      },
+      { property: "og:site_name", content: "PathMates" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "PathMates" },
       {
@@ -39,6 +44,7 @@ export const Route = createRootRoute({
       },
     ],
     links: [
+      { rel: "canonical", href: "https://site-virid-eight-86.vercel.app/" },
       { rel: "stylesheet", href: appCss },
       {
         rel: "preconnect",
