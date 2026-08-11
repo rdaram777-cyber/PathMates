@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "~/lib/auth";
 import { getExperience, deleteExperience } from "~/lib/experiences";
+import { parseExperienceContent } from "~/lib/experience-sections";
+import { getUserCurrency, formatTierPrice, type CurrencyCode } from "~/lib/currency";
 
 export const Route = createFileRoute("/experiences/$experienceId/")({
   loader: ({ params }) => getExperience({ data: params.experienceId }),
@@ -15,6 +17,14 @@ function ExperienceDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  // Currency detection: default to USD for SSR/first paint, then switch to the
+  // user's detected currency (₹ for India, $ for everyone else) after mount.
+  const [currency, setCurrency] = useState<{ code: CurrencyCode; symbol: string }>(
+    { code: "USD", symbol: "$" },
+  );
+  useEffect(() => {
+    setCurrency(getUserCurrency());
+  }, []);
 
   if (experience === undefined) {
     return (
@@ -43,6 +53,9 @@ function ExperienceDetailPage() {
   const isOwner = user?.id === experience.user_id;
   const initials = (experience.profiles?.full_name || "P")[0].toUpperCase();
   const categoryName = experience.categories?.name || "Uncategorized";
+  // Structured content: intro + "## Heading" sections (rendered as cards).
+  // Legacy content with no headings renders as a single story block.
+  const parsed = parseExperienceContent(experience.content);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -57,9 +70,15 @@ function ExperienceDetailPage() {
     }
   };
 
+  const introCard = (body: string) => (
+    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "20px", padding: "32px", marginBottom: "16px", whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "1.05rem" }}>
+      {body}
+    </div>
+  );
+
   return (
     <main style={{ minHeight: "80vh", padding: "48px 16px", background: "var(--bg)" }}>
-      <div style={{ width: "min(800px, 100%)", margin: "auto" }}>
+      <div style={{ width: "min(860px, 100%)", margin: "auto" }}>
         <div style={{ marginBottom: "24px" }}>
           <Link to="/" style={{ color: "var(--muted)", textDecoration: "none", fontSize: ".9rem" }}>
             ← Back to experiences
@@ -88,9 +107,32 @@ function ExperienceDetailPage() {
           </div>
         </Link>
 
-        <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "20px", padding: "32px", marginBottom: "24px", whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "1.05rem" }}>
-          {experience.content}
-        </div>
+        {parsed.isStructured ? (
+          <>
+            {parsed.intro && introCard(parsed.intro)}
+            {parsed.sections.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px", marginBottom: "28px" }}>
+                {parsed.sections.map((section) => (
+                  <div key={section.heading} style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "16px", padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#fff1e9", color: "#c85b2e", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "1.05rem", flexShrink: 0 }}>
+                        {section.icon}
+                      </span>
+                      <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 800, letterSpacing: "-.01em" }}>
+                        {section.heading}
+                      </h2>
+                    </div>
+                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.65, fontSize: ".96rem", color: "var(--text)" }}>
+                      {section.body}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          introCard(experience.content)
+        )}
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
           {user ? (
@@ -99,7 +141,7 @@ function ExperienceDetailPage() {
               params={{ experienceId: experience.id }}
               style={{ border: "none", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "var(--accent)", color: "#fff", cursor: "pointer", textDecoration: "none", fontSize: "inherit", display: "inline-block" }}
             >
-              Book a call
+              Book a 30-min call · {formatTierPrice(30, currency)}
             </Link>
           ) : (
             <Link
@@ -121,6 +163,10 @@ function ExperienceDetailPage() {
             </>
           )}
         </div>
+
+        <p style={{ color: "var(--muted)", fontSize: ".88rem", marginTop: "14px", lineHeight: 1.5 }}>
+          100% refund guarantee — if your PathMate doesn't attend the call, you get a full refund.
+        </p>
 
         {deleteError && (
           <div style={{ marginTop: "16px", padding: "12px", borderRadius: "10px", background: "#fff0ee", color: "#b42318", fontSize: ".9rem" }}>

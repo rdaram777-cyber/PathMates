@@ -1,8 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import type { FormEvent } from "react";
 import { useAuth } from "~/lib/auth";
 import { getExperience, updateExperience, getCategories, type Category, type ExperienceWithDetails } from "~/lib/experiences";
+import {
+  EXPERIENCE_SECTIONS,
+  buildExperienceContent,
+  emptySectionFields,
+  sectionFieldsFromContent,
+} from "~/lib/experience-sections";
 
 export const Route = createFileRoute("/experiences/$experienceId/edit")({
   loader: async ({ params }) => {
@@ -25,6 +31,7 @@ function EditExperiencePage() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [sections, setSections] = useState<Record<string, string>>(emptySectionFields());
   const [categoryId, setCategoryId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,6 +41,11 @@ function EditExperiencePage() {
       setTitle(experience.title);
       setContent(experience.content);
       setCategoryId(experience.category_id ?? "");
+      // Mirror the parser: split stored content back into the intro field
+      // (main textarea) plus the six canonical section fields.
+      const parsed = sectionFieldsFromContent(experience.content);
+      setContent(parsed.intro);
+      setSections(parsed.fields);
     }
   }, [experience]);
 
@@ -91,7 +103,9 @@ function EditExperiencePage() {
     setError("");
     setLoading(true);
     try {
-      await updateExperience({ data: { id: experience!.id, title: title.trim(), content: content.trim(), category_id: categoryId || null } });
+      // Rebuild the structured content from the intro + section fields.
+      const built = buildExperienceContent(content, sections);
+      await updateExperience({ data: { id: experience!.id, title: title.trim(), content: built, category_id: categoryId || null } });
       navigate({ to: "/experiences/$experienceId", params: { experienceId: experience!.id } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred.");
@@ -100,9 +114,22 @@ function EditExperiencePage() {
     }
   }
 
+  const textareaStyle: CSSProperties = {
+    width: "100%",
+    border: "1px solid var(--line)",
+    borderRadius: "10px",
+    padding: "12px",
+    outline: "none",
+    fontSize: "inherit",
+    font: "inherit",
+    background: "var(--bg)",
+    resize: "vertical",
+    minHeight: "70px",
+  };
+
   return (
     <main style={{ minHeight: "80vh", padding: "48px 16px", background: "var(--bg)" }}>
-      <div style={{ width: "min(620px, 100%)", margin: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "20px", padding: "32px" }}>
+      <div style={{ width: "min(680px, 100%)", margin: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "20px", padding: "32px" }}>
         <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: "-.03em" }}>Edit experience</h1>
         <p style={{ color: "var(--muted)", margin: "0 0 24px" }}>Update your shared experience.</p>
 
@@ -132,8 +159,33 @@ function EditExperiencePage() {
 
           <div style={{ marginBottom: "24px" }}>
             <label style={{ display: "block", fontWeight: 700, marginBottom: "6px" }}>Your experience</label>
+            <p style={{ margin: "0 0 8px", color: "var(--muted)", fontSize: ".85rem" }}>
+              Write your story here. Anything before the section headings below.
+            </p>
             <textarea value={content} onChange={(e) => setContent(e.target.value)} required rows={6}
               style={{ width: "100%", border: "1px solid var(--line)", borderRadius: "10px", padding: "12px", outline: "none", fontSize: "inherit", font: "inherit", background: "var(--bg)", resize: "vertical", minHeight: "150px" }} />
+          </div>
+
+          <div style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, margin: "0 0 4px" }}>Optional details</h2>
+            <p style={{ color: "var(--muted)", fontSize: ".85rem", margin: "0 0 16px" }}>
+              Fill in any that apply — they'll be shown as clear sections on your experience page.
+            </p>
+            {EXPERIENCE_SECTIONS.map((section) => (
+              <div key={section.key} style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontWeight: 700, marginBottom: "6px", fontSize: ".95rem" }}>
+                  <span style={{ marginRight: "6px" }}>{section.icon}</span>
+                  {section.heading}
+                </label>
+                <textarea
+                  value={sections[section.key] ?? ""}
+                  onChange={(e) => setSections((prev) => ({ ...prev, [section.key]: e.target.value }))}
+                  rows={3}
+                  placeholder={section.hint}
+                  style={textareaStyle}
+                />
+              </div>
+            ))}
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
