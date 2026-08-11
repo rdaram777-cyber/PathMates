@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "~/lib/auth";
 import { getBooking, confirmBooking } from "~/lib/bookings";
+import { getExperience } from "~/lib/experiences";
 import { formatAmountCents } from "~/lib/currency";
 
 export const Route = createFileRoute("/bookings/$bookingId/success")({
@@ -12,6 +13,7 @@ function BookingSuccessPage() {
   const { bookingId } = Route.useParams();
   const { user } = useAuth();
   const [booking, setBooking] = useState<any>(null);
+  const [experienceTitle, setExperienceTitle] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
@@ -22,6 +24,11 @@ function BookingSuccessPage() {
       try {
         const result = await getBooking({ data: bookingId });
         setBooking(result);
+        // Fetch the experience title so the confirmation shows what was booked.
+        if (result?.experience_id) {
+          const exp = await getExperience({ data: result.experience_id });
+          setExperienceTitle(exp?.title ?? null);
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load booking.",
@@ -128,6 +135,9 @@ function BookingSuccessPage() {
     );
   }
 
+  const isPaid = booking.status === "paid";
+  const mentorName = booking.pathmate?.full_name || "your PathMate";
+
   return (
     <main
       style={{
@@ -168,13 +178,18 @@ function BookingSuccessPage() {
             margin: "0 0 12px",
           }}
         >
-          Booking confirmed!
+          {isPaid
+            ? "Payment successful! Your call is confirmed 🎉"
+            : "Booking confirmed!"}
         </h1>
         <p style={{ color: "var(--muted)", marginBottom: "24px" }}>
-          Your call with{" "}
-          <strong>
-            {booking.pathmate?.full_name || "your PathMate"}
-          </strong>{" "}
+          Your call with <strong>{mentorName}</strong>
+          {experienceTitle ? (
+            <>
+              {" "}
+              about <strong>“{experienceTitle}”</strong>
+            </>
+          ) : null}{" "}
           has been scheduled.
         </p>
 
@@ -189,6 +204,31 @@ function BookingSuccessPage() {
             textAlign: "left",
           }}
         >
+          {experienceTitle && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "16px",
+                marginBottom: "8px",
+              }}
+            >
+              <span style={{ color: "var(--muted)", flexShrink: 0 }}>
+                Experience
+              </span>
+              <strong style={{ textAlign: "right" }}>{experienceTitle}</strong>
+            </div>
+          )}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "8px",
+            }}
+          >
+            <span style={{ color: "var(--muted)" }}>PathMate</span>
+            <strong>{mentorName}</strong>
+          </div>
           <div
             style={{
               display: "flex",
@@ -235,21 +275,16 @@ function BookingSuccessPage() {
             <span style={{ color: "var(--muted)" }}>Status</span>
             <strong
               style={{
-                color:
-                  booking.status === "paid"
-                    ? "#067647"
-                    : booking.status === "pending"
-                      ? "#b54708"
-                      : "var(--text)",
+                color: isPaid ? "#067647" : booking.status === "pending" ? "#b54708" : "var(--text)",
               }}
             >
-              {booking.status === "paid" ? "Paid" : booking.status}
+              {isPaid ? "Paid" : booking.status}
             </strong>
           </div>
         </div>
 
         {/* Meeting link */}
-        {meetingUrl && (
+        {meetingUrl ? (
           <div
             style={{
               padding: "24px",
@@ -262,7 +297,7 @@ function BookingSuccessPage() {
             <h2
               style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 8px" }}
             >
-              Your meeting room is ready
+              Your call is ready
             </h2>
             <p
               style={{
@@ -288,9 +323,23 @@ function BookingSuccessPage() {
                 fontSize: "1rem",
               }}
             >
-              Join Call
+              Join your call
             </Link>
           </div>
+        ) : (
+          <p
+            style={{
+              color: "var(--muted)",
+              fontSize: ".95rem",
+              margin: "0 0 24px",
+            }}
+          >
+            Open{" "}
+            <Link to="/bookings" style={{ color: "var(--accent)", fontWeight: 700 }}>
+              My Bookings
+            </Link>{" "}
+            to get your call link.
+          </p>
         )}
 
         {confirming && (

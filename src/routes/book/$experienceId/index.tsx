@@ -544,6 +544,22 @@ function BookPage() {
             >
               {loading ? "Creating booking..." : "Confirm & Pay"}
             </button>
+
+            <p style={{ color: "var(--muted)", fontSize: ".85rem", marginTop: "14px", lineHeight: 1.5 }}>
+              100% refund guarantee — if your PathMate doesn't attend the call, you get a full refund.
+            </p>
+
+            {/* Secure payment badges — methods available through Razorpay */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "14px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: ".78rem", fontWeight: 700, color: "var(--muted)", letterSpacing: ".04em", textTransform: "uppercase" }}>
+                Secure payment
+              </span>
+              {["Razorpay", "UPI", "Visa", "Mastercard"].map((method) => (
+                <span key={method} style={{ border: "1px solid var(--line)", borderRadius: "8px", padding: "4px 10px", fontSize: ".78rem", fontWeight: 700, color: "var(--text)", background: "var(--card)" }}>
+                  {method}
+                </span>
+              ))}
+            </div>
             {error && (
               <div
                 style={{

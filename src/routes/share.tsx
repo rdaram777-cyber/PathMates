@@ -1,7 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { useAuth } from "~/lib/auth";
 import { createExperience, getCategories, type Category } from "~/lib/experiences";
+import {
+  EXPERIENCE_SECTIONS,
+  buildExperienceContent,
+  emptySectionFields,
+} from "~/lib/experience-sections";
 
 export const Route = createFileRoute("/share")({
   loader: () => getCategories(),
@@ -15,6 +20,7 @@ function SharePage() {
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [content, setContent] = useState("");
+  const [sections, setSections] = useState<Record<string, string>>(emptySectionFields());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -91,10 +97,12 @@ function SharePage() {
     setLoading(true);
 
     try {
+      // Build the structured content from the intro + optional section fields.
+      const built = buildExperienceContent(content, sections);
       const result = await createExperience({
         data: {
           title: title.trim(),
-          content: content.trim(),
+          content: built,
           category_id: categoryId || null,
         },
       });
@@ -102,6 +110,7 @@ function SharePage() {
       setTitle("");
       setCategoryId("");
       setContent("");
+      setSections(emptySectionFields());
       setLoading(false);
 
       // Redirect to the new experience detail page
@@ -117,6 +126,19 @@ function SharePage() {
     }
   }
 
+  const textareaStyle: CSSProperties = {
+    width: "100%",
+    border: "1px solid var(--line)",
+    borderRadius: "10px",
+    padding: "12px",
+    outline: "none",
+    fontSize: "inherit",
+    font: "inherit",
+    background: "var(--bg)",
+    resize: "vertical",
+    minHeight: "70px",
+  };
+
   return (
     <main
       style={{
@@ -127,7 +149,7 @@ function SharePage() {
     >
       <div
         style={{
-          width: "min(620px, 100%)",
+          width: "min(680px, 100%)",
           margin: "auto",
           background: "var(--card)",
           border: "1px solid var(--line)",
@@ -241,6 +263,9 @@ function SharePage() {
             >
               Your experience
             </label>
+            <p style={{ margin: "0 0 8px", color: "var(--muted)", fontSize: ".85rem" }}>
+              Write your story here. Anything before the section headings below.
+            </p>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -259,6 +284,43 @@ function SharePage() {
                 minHeight: "150px",
               }}
             />
+          </div>
+
+          <div style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "1.05rem", fontWeight: 800, margin: "0 0 4px" }}>
+              Optional details
+            </h2>
+            <p style={{ color: "var(--muted)", fontSize: ".85rem", margin: "0 0 16px" }}>
+              Fill in any that apply — they&apos;ll be shown as clear sections on your
+              experience page.
+            </p>
+            {EXPERIENCE_SECTIONS.map((section) => (
+              <div key={section.key} style={{ marginBottom: "14px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontWeight: 700,
+                    marginBottom: "6px",
+                    fontSize: ".95rem",
+                  }}
+                >
+                  <span style={{ marginRight: "6px" }}>{section.icon}</span>
+                  {section.heading}
+                </label>
+                <textarea
+                  value={sections[section.key] ?? ""}
+                  onChange={(e) =>
+                    setSections((prev) => ({
+                      ...prev,
+                      [section.key]: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                  placeholder={section.hint}
+                  style={textareaStyle}
+                />
+              </div>
+            ))}
           </div>
 
           <div
