@@ -1,76 +1,43 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useAuth } from "~/lib/auth";
 import { getExperiences, type ExperienceWithDetails } from "~/lib/experiences";
-import { StarRatingInline } from "~/components/StarRating";
+import { getHomepageStats } from "~/lib/stats";
+import {
+  formatTierPrice,
+  getUserCurrency,
+  type CurrencyCode,
+} from "~/lib/currency";
 
 export const Route = createFileRoute("/")({
-  loader: () => getExperiences(),
+  loader: async () => {
+    const [allExperiences, stats] = await Promise.all([
+      getExperiences(),
+      getHomepageStats(),
+    ]);
+    // Latest 6 for the featured grid (getExperiences already orders newest first).
+    return { experiences: allExperiences.slice(0, 6), stats };
+  },
   component: Home,
 });
 
+/** Format counts with thousands separators, e.g. 1234 → "1,234". */
+function formatCount(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
 function Home() {
-  const experiences = Route.useLoaderData() as ExperienceWithDetails[];
+  const { experiences, stats } = Route.useLoaderData();
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Demo data fallback if no experiences in DB yet
-  const demos: ExperienceWithDetails[] = [
-    {
-      id: "demo1",
-      user_id: "",
-      title: "I have experience in business and can share my experience.",
-      content:
-        "I can share what I learned, what worked and what I would do differently.",
-      category_id: null,
-      created_at: "",
-      updated_at: "",
-      profiles: { full_name: "PathMate", avatar_url: null },
-      categories: { name: "Business", slug: "business" },
-    },
-    {
-      id: "demo2",
-      user_id: "",
-      title: "Moved to another country and found a new career.",
-      content:
-        "I can share my real experience with relocation, applications and starting again.",
-      category_id: null,
-      created_at: "",
-      updated_at: "",
-      profiles: { full_name: "PathMate", avatar_url: null },
-      categories: { name: "Career", slug: "career" },
-    },
-    {
-      id: "demo3",
-      user_id: "",
-      title: "Started a project from scratch.",
-      content:
-        "Here is what I learned from the first idea to the first result.",
-      category_id: null,
-      created_at: "",
-      updated_at: "",
-      profiles: { full_name: "PathMate", avatar_url: null },
-      categories: { name: "Projects", slug: "projects" },
-    },
-  ];
-
-  const displayExperiences =
-    experiences.length > 0 ? experiences : demos;
-
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      navigate({ to: "/search", search: { q: searchQuery.trim() } });
-    }
-  };
-
-  const handleSearchClick = () => {
-    if (searchQuery.trim()) {
-      navigate({ to: "/search", search: { q: searchQuery.trim() } });
-    } else {
-      document.getElementById("explore")?.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+  // Currency detection: default to USD for SSR/first paint, then switch to the
+  // user's detected currency (₹ for India, $ for everyone else) after mount —
+  // same pattern as the booking/experience pages.
+  const [currency, setCurrency] = useState<{ code: CurrencyCode; symbol: string }>(
+    { code: "USD", symbol: "$" },
+  );
+  useEffect(() => {
+    setCurrency(getUserCurrency());
+  }, []);
 
   return (
     <main>
@@ -78,7 +45,8 @@ function Home() {
       <section
         style={{
           textAlign: "center",
-          padding: "80px 0 55px",
+          padding: "clamp(64px, 10vw, 112px) 0 clamp(48px, 6vw, 64px)",
+          overflow: "hidden",
         }}
       >
         <div
@@ -93,74 +61,211 @@ function Home() {
               background: "#fff1e9",
               color: "#c85b2e",
               borderRadius: "999px",
-              padding: "7px 12px",
+              padding: "7px 14px",
               fontSize: ".85rem",
               fontWeight: 700,
-              marginBottom: "18px",
+              marginBottom: "22px",
             }}
           >
             Real experience. Real people. Real paths.
           </span>
           <h1
             style={{
-              maxWidth: "820px",
+              maxWidth: "900px",
               margin: "auto",
-              fontSize: "clamp(2.6rem, 7vw, 5.5rem)",
-              lineHeight: ".98",
-              letterSpacing: "-.07em",
+              fontSize: "clamp(2.5rem, 6.5vw, 5rem)",
+              lineHeight: "1.02",
+              letterSpacing: "-.055em",
+              fontWeight: 800,
             }}
           >
-            You have a goal. Someone has already done it.
+            Learn Directly from People Who Have Already Done It
           </h1>
           <p
             style={{
-              maxWidth: "650px",
-              margin: "24px auto",
+              maxWidth: "700px",
+              margin: "26px auto 0",
               color: "var(--muted)",
-              fontSize: "1.1rem",
+              fontSize: "clamp(1.05rem, 2.4vw, 1.2rem)",
+              lineHeight: 1.6,
             }}
           >
-            Find people who have actually lived through the experience
-            you&apos;re considering.
+            Book 1:1 video calls with experienced founders, freelancers,
+            creators, and professionals — and get the real story, real numbers,
+            and real advice before you take the leap.
           </p>
-
-          <div className="search-box">
-            <input
-              placeholder="What do you want to do? e.g. start a business"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-              style={{
-                flex: 1,
-                border: "none",
-                outline: "none",
-                padding: "14px",
-                background: "transparent",
-                minWidth: 0,
-                fontSize: "inherit",
-                font: "inherit",
-              }}
-            />
-            <button
-              onClick={handleSearchClick}
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              marginTop: "34px",
+            }}
+          >
+            <Link
+              to="/search"
+              search={{ q: "" }}
               style={{
                 border: "none",
-                borderRadius: "12px",
-                padding: "14px 18px",
+                borderRadius: "14px",
+                padding: "15px 26px",
                 fontWeight: 700,
+                fontSize: "1rem",
                 background: "var(--accent)",
                 color: "#fff",
                 textDecoration: "none",
                 display: "inline-block",
-                whiteSpace: "nowrap",
-                cursor: "pointer",
-                fontSize: "inherit",
-                font: "inherit",
+                boxShadow: "0 8px 24px rgba(233,121,69,.28)",
               }}
             >
-              Find someone
-            </button>
+              Browse experiences
+            </Link>
+            <Link
+              to="/share"
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: "14px",
+                padding: "15px 26px",
+                fontWeight: 700,
+                fontSize: "1rem",
+                background: "transparent",
+                color: "var(--text)",
+                textDecoration: "none",
+                display: "inline-block",
+              }}
+            >
+              Share your experience
+            </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Social proof stats bar (live counts, never fabricated) */}
+      <section style={{ padding: "0 0 clamp(56px, 8vw, 88px)" }}>
+        <div
+          style={{
+            width: "min(1160px, calc(100% - 32px))",
+            margin: "auto",
+          }}
+        >
+          <div className="stats-grid">
+            <StatCell value={formatCount(stats.mentors)} label="Mentors" />
+            <StatCell value={formatCount(stats.experiences)} label="Experiences" />
+            <StatCell value={formatCount(stats.bookings)} label="Paid bookings" />
+            {stats.avgRating !== null ? (
+              <StatCell value={stats.avgRating.toFixed(1)} label="Avg. rating" />
+            ) : (
+              // No ratings yet — honest placeholder instead of a fake "0.0".
+              <StatCell value="New" label="platform" />
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured experiences */}
+      <section className="section" id="experiences" style={{ padding: "0 0 80px" }}>
+        <div
+          style={{
+            width: "min(1160px, calc(100% - 32px))",
+            margin: "auto",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "20px",
+              alignItems: "end",
+              marginBottom: "28px",
+            }}
+            className="heading"
+          >
+            <div>
+              <span
+                style={{
+                  display: "inline-block",
+                  background: "#fff1e9",
+                  color: "#c85b2e",
+                  borderRadius: "999px",
+                  padding: "7px 12px",
+                  fontSize: ".85rem",
+                  fontWeight: 700,
+                  marginBottom: "10px",
+                }}
+              >
+                Real journeys
+              </span>
+              <h2
+                style={{
+                  fontSize: "clamp(1.8rem, 4vw, 3rem)",
+                  letterSpacing: "-.05em",
+                  margin: 0,
+                }}
+              >
+                Featured experiences
+              </h2>
+            </div>
+            <p style={{ maxWidth: "480px", color: "var(--muted)", margin: 0 }}>
+              Real stories, real numbers, real decisions — told by the people
+              who lived them. Book a 1:1 call and ask anything.
+            </p>
+          </div>
+
+          {experiences.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "72px 24px",
+                background: "var(--card)",
+                border: "1px dashed var(--line)",
+                borderRadius: "20px",
+              }}
+            >
+              <div style={{ fontSize: "2.6rem", marginBottom: "12px" }}>🛤️</div>
+              <h3 style={{ margin: "0 0 8px", fontSize: "1.3rem" }}>
+                No experiences yet
+              </h3>
+              <p
+                style={{
+                  color: "var(--muted)",
+                  maxWidth: "420px",
+                  margin: "0 auto 22px",
+                }}
+              >
+                Be the first to share your journey — the real story, the real
+                numbers, the real advice.
+              </p>
+              <Link
+                to="/share"
+                style={{
+                  display: "inline-block",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "13px 22px",
+                  fontWeight: 700,
+                  background: "var(--accent)",
+                  color: "#fff",
+                  textDecoration: "none",
+                }}
+              >
+                Be the first to share
+              </Link>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "18px",
+              }}
+              className="grid three-col"
+            >
+              {experiences.map((exp) => (
+                <ExperienceCard key={exp.id} experience={exp} currency={currency} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -265,69 +370,6 @@ function Home() {
                 Share my experience →
               </Link>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured experiences */}
-      <section className="section" id="experiences" style={{ padding: "70px 0" }}>
-        <div
-          style={{
-            width: "min(1160px, calc(100% - 32px))",
-            margin: "auto",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: "20px",
-              alignItems: "end",
-              marginBottom: "25px",
-            }}
-            className="heading"
-          >
-            <div>
-              <span
-                style={{
-                  display: "inline-block",
-                  background: "#fff1e9",
-                  color: "#c85b2e",
-                  borderRadius: "999px",
-                  padding: "7px 12px",
-                  fontSize: ".85rem",
-                  fontWeight: 700,
-                  marginBottom: "8px",
-                }}
-              >
-                Real journeys
-              </span>
-              <h2
-                style={{
-                  fontSize: "clamp(1.8rem, 4vw, 3rem)",
-                  letterSpacing: "-.05em",
-                  margin: 0,
-                }}
-              >
-                Explore experiences.
-              </h2>
-            </div>
-            <p style={{ maxWidth: "480px", color: "var(--muted)" }}>
-              Specific experiences from people who have walked the path.
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "18px",
-            }}
-            className="grid three-col"
-          >
-            {displayExperiences.map((exp) => (
-              <ExperienceCard key={exp.id} experience={exp} />
-            ))}
           </div>
         </div>
       </section>
@@ -479,8 +521,8 @@ function Home() {
               marginBottom: "12px",
             }}
           >
-            Don&apos;t just search for advice. Find someone who&apos;s already walked
-            the path.
+            Don&apos;t just search for advice. Find someone who&apos;s already
+            walked the path.
           </h2>
           <p style={{ color: "var(--muted)", marginBottom: "24px" }}>
             Your next step could be easier if you learn from someone else&apos;s
@@ -525,118 +567,287 @@ function Home() {
   );
 }
 
-/** Reusable experience card used on homepage and search results */
-function ExperienceCard({
-  experience,
-}: {
-  experience: ExperienceWithDetails;
-}) {
-  const isDemo = experience.id.startsWith("demo");
-  const preview =
-    experience.content.length > 150
-      ? experience.content.slice(0, 150) + "..."
-      : experience.content;
-  const initials = (experience.profiles?.full_name || "P")[0].toUpperCase();
-  const categoryName = experience.categories?.name || "Experience";
-  const avgRating = experience.profiles?.avg_rating ?? 0;
-  const reviewCount = experience.profiles?.review_count ?? 0;
-  const isVerified = experience.profiles?.verified ?? false;
-
+/** One cell of the social-proof stats bar. */
+function StatCell({ value, label }: { value: string; label: string }) {
   return (
-    <div className="card">
-      {/* Category tag */}
-      <span
-        style={{
-          display: "inline-block",
-          background: "#f2f4f7",
-          borderRadius: "999px",
-          padding: "6px 9px",
-          fontSize: ".78rem",
-          fontWeight: 700,
-          color: "#475467",
-        }}
-      >
-        {categoryName}
-      </span>
-
-      {/* Title */}
-      <h3 style={{ margin: "8px 0 12px", fontSize: "1.05rem" }}>
-        {experience.title}
-      </h3>
-
-      {/* Content preview */}
-      <p style={{ color: "var(--muted)", whiteSpace: "pre-wrap", fontSize: ".92rem" }}>
-        {preview}
-      </p>
-
-      {/* Author + link */}
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line)",
+        borderRadius: "16px",
+        padding: "26px 18px",
+        textAlign: "center",
+      }}
+    >
       <div
         style={{
-          display: "flex",
-          gap: "10px",
-          alignItems: "center",
-          borderTop: "1px solid var(--line)",
-          paddingTop: "15px",
-          marginTop: "16px",
-          justifyContent: "space-between",
+          fontSize: "clamp(1.9rem, 4vw, 2.6rem)",
+          fontWeight: 800,
+          letterSpacing: "-.04em",
+          lineHeight: 1.1,
+          color: "var(--accent)",
         }}
       >
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <div
+        {value}
+      </div>
+      <div
+        style={{
+          fontSize: ".76rem",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: ".09em",
+          color: "var(--muted)",
+          marginTop: "8px",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+/** Featured experience card: real data only — avatar, verified badge, rating,
+ *  price ("From" the cheapest tier), duration, title, category. */
+function ExperienceCard({
+  experience,
+  currency,
+}: {
+  experience: ExperienceWithDetails;
+  currency: { code: CurrencyCode; symbol: string };
+}) {
+  const profile = experience.profiles;
+  const name = profile?.full_name || "PathMate";
+  const initials =
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "P";
+  const avatarUrl = profile?.avatar_url ?? null;
+  const isVerified = profile?.verified ?? false;
+  const avgRating = profile?.avg_rating ?? 0;
+  const reviewCount = profile?.review_count ?? 0;
+  const categoryName = experience.categories?.name || "Experience";
+  const preview =
+    experience.content.length > 140
+      ? experience.content.slice(0, 140).trimEnd() + "…"
+      : experience.content;
+  // Cheapest tier (15-min call) as the "From" price.
+  const fromPrice = formatTierPrice(15, currency);
+
+  return (
+    <Link
+      to="/experiences/$experienceId"
+      params={{ experienceId: experience.id }}
+      style={{ textDecoration: "none", color: "inherit", display: "block" }}
+    >
+      <div
+        className="card"
+        style={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+          transition: "transform .18s ease, box-shadow .18s ease",
+        }}
+      >
+        {/* Category + duration */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <span
             style={{
-              width: "38px",
-              height: "38px",
-              borderRadius: "50%",
-              background: "#fff1e9",
-              color: "#c85b2e",
-              display: "grid",
-              placeItems: "center",
-              fontWeight: 800,
-              flexShrink: 0,
+              display: "inline-block",
+              background: "#f2f4f7",
+              borderRadius: "999px",
+              padding: "6px 10px",
+              fontSize: ".78rem",
+              fontWeight: 700,
+              color: "#475467",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "70%",
             }}
           >
-            {initials}
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <strong style={{ fontSize: ".95rem" }}>
-                {experience.profiles?.full_name || "PathMate"}
+            {categoryName}
+          </span>
+          <span
+            style={{
+              fontSize: ".76rem",
+              fontWeight: 600,
+              color: "var(--muted)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            15–60 min calls
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "1.12rem",
+            lineHeight: 1.35,
+            letterSpacing: "-.01em",
+          }}
+        >
+          {experience.title}
+        </h3>
+
+        {/* Content preview */}
+        <p
+          style={{
+            color: "var(--muted)",
+            fontSize: ".92rem",
+            margin: 0,
+            flex: 1,
+          }}
+        >
+          {preview}
+        </p>
+
+        {/* Author: avatar / initials + name + verified badge + rating */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            borderTop: "1px solid var(--line)",
+            paddingTop: "14px",
+          }}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={name}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                objectFit: "cover",
+                flexShrink: 0,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                background: "#fff1e9",
+                color: "#c85b2e",
+                display: "grid",
+                placeItems: "center",
+                fontWeight: 800,
+                fontSize: ".85rem",
+                flexShrink: 0,
+              }}
+            >
+              {initials}
+            </div>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                flexWrap: "wrap",
+              }}
+            >
+              <strong
+                style={{
+                  fontSize: ".92rem",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                }}
+              >
+                {name}
               </strong>
               {isVerified && (
                 <span
+                  title="Verified PathMate"
                   style={{
-                    fontSize: ".7rem",
+                    fontSize: ".68rem",
                     background: "#ecfdf3",
                     color: "#067647",
                     borderRadius: "999px",
-                    padding: "2px 6px",
-                    fontWeight: 700,
+                    padding: "2px 7px",
+                    fontWeight: 800,
+                    whiteSpace: "nowrap",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
                   }}
                 >
-                  ✓
+                  ✓ Verified
                 </span>
               )}
             </div>
-            <StarRatingInline rating={avgRating} count={reviewCount} />
+            {avgRating > 0 ? (
+              <span style={{ fontSize: ".82rem", color: "var(--muted)" }}>
+                ★ {avgRating.toFixed(1)}
+                {reviewCount > 0 && ` (${reviewCount})`}
+              </span>
+            ) : (
+              <span
+                style={{
+                  fontSize: ".78rem",
+                  color: "var(--muted)",
+                  fontWeight: 600,
+                }}
+              >
+                New — no ratings yet
+              </span>
+            )}
           </div>
         </div>
 
-        {!isDemo && (
-          <Link
-            to="/experiences/$experienceId"
-            params={{ experienceId: experience.id }}
+        {/* Price + link */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "10px",
+            borderTop: "1px solid var(--line)",
+            paddingTop: "14px",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "1.2rem",
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {`From ${fromPrice}`}
+            </div>
+          </div>
+          <span
             style={{
-              fontSize: ".82rem",
+              fontSize: ".85rem",
               fontWeight: 700,
               color: "var(--accent)",
-              textDecoration: "none",
               whiteSpace: "nowrap",
             }}
           >
             View experience →
-          </Link>
-        )}
+          </span>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
