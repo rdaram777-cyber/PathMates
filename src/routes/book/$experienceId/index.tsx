@@ -48,14 +48,38 @@ function getAvailableDates(slots: any[], daysAhead: number): Date[] {
   return dates;
 }
 
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function minutesToTime(min: number): string {
+  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Expand each availability range into concrete 30-minute start times
+ * ("HH:MM"), keeping only starts where the selected call duration fits
+ * before the range ends. For the seeded 09:00-21:00 range a 30-min call
+ * yields 09:00, 09:30, 10:00, …, 20:30 (24 starts); a 60-min call drops
+ * the 20:30 start because it would run past 21:00.
+ */
 function getTimeSlotsForDate(
   slots: any[],
   date: Date,
-): { start: string; end: string }[] {
+  durationMinutes: number,
+): string[] {
   const dayOfWeek = date.getDay();
-  return slots
-    .filter((s) => s.day_of_week === dayOfWeek)
-    .map((s) => ({ start: s.start_time, end: s.end_time }));
+  const starts = new Set<string>();
+  for (const s of slots) {
+    if (s.day_of_week !== dayOfWeek) continue;
+    const startMin = timeToMinutes(s.start_time);
+    const endMin = timeToMinutes(s.end_time);
+    for (let t = startMin; t + durationMinutes <= endMin; t += 30) {
+      starts.add(minutesToTime(t));
+    }
+  }
+  return [...starts].sort();
 }
 
 function formatDate(d: Date): string {
@@ -165,7 +189,7 @@ function BookPage() {
 
   const availableDates = getAvailableDates(slots, 14);
   const timeSlots = selectedDate
-    ? getTimeSlotsForDate(slots, selectedDate)
+    ? getTimeSlotsForDate(slots, selectedDate, duration)
     : [];
   // Fixed tier pricing — prices come from the platform-wide table,
   // not from the PathMate's hourly_rate.
@@ -407,23 +431,23 @@ function BookPage() {
                 gap: "8px",
               }}
             >
-              {timeSlots.map((slot) => (
+              {timeSlots.map((start) => (
                 <button
-                  key={slot.start}
-                  onClick={() => setSelectedTime(slot.start)}
+                  key={start}
+                  onClick={() => setSelectedTime(start)}
                   style={{
                     border:
-                      selectedTime === slot.start
+                      selectedTime === start
                         ? "2px solid var(--accent)"
                         : "1px solid var(--line)",
                     borderRadius: "12px",
                     padding: "12px",
                     background:
-                      selectedTime === slot.start
+                      selectedTime === start
                         ? "#fff5f0"
                         : "var(--card)",
                     color:
-                      selectedTime === slot.start
+                      selectedTime === start
                         ? "var(--accent)"
                         : "var(--text)",
                     fontWeight: 600,
@@ -433,7 +457,7 @@ function BookPage() {
                     textAlign: "center",
                   }}
                 >
-                  {formatTime(slot.start)} - {formatTime(slot.end)}
+                  {formatTime(start)}
                 </button>
               ))}
             </div>
@@ -451,7 +475,21 @@ function BookPage() {
             {TIER_DURATIONS.map((mins) => (
               <button
                 key={mins}
-                onClick={() => setDuration(mins)}
+                onClick={() => {
+                  setDuration(mins);
+                  // If the picked start time no longer fits the new duration,
+                  // clear it so the user re-picks a valid start time.
+                  setSelectedTime((prev) => {
+                    if (!prev || !selectedDate) return prev;
+                    return getTimeSlotsForDate(
+                      slots,
+                      selectedDate,
+                      mins,
+                    ).includes(prev)
+                      ? prev
+                      : null;
+                  });
+                }}
                 style={{
                   border:
                     duration === mins
