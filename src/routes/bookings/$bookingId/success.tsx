@@ -288,8 +288,8 @@ function BookingSuccessPage() {
           <div
             style={{
               padding: "24px",
-              background: "#f9f5ff",
-              border: "1px solid #e9d7fe",
+              background: "#ecfdf3",
+              border: "1px solid #b9e4c7",
               borderRadius: "16px",
               marginBottom: "24px",
             }}
@@ -311,17 +311,7 @@ function BookingSuccessPage() {
             <Link
               to="/call/$bookingId"
               params={{ bookingId: booking.id }}
-              style={{
-                display: "inline-block",
-                border: "none",
-                borderRadius: "12px",
-                padding: "14px 28px",
-                fontWeight: 700,
-                background: "var(--accent)",
-                color: "#fff",
-                textDecoration: "none",
-                fontSize: "1rem",
-              }}
+              className="btn btn-primary btn-md"
             >
               Join your call
             </Link>
@@ -349,34 +339,10 @@ function BookingSuccessPage() {
         )}
 
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-          <Link
-            to="/bookings"
-            style={{
-              border: "1px solid var(--line)",
-              borderRadius: "12px",
-              padding: "12px 18px",
-              fontWeight: 700,
-              background: "transparent",
-              color: "var(--text)",
-              textDecoration: "none",
-              fontSize: ".95rem",
-            }}
-          >
+          <Link to="/bookings" className="btn btn-outline btn-sm">
             My Bookings
           </Link>
-          <Link
-            to="/"
-            style={{
-              border: "1px solid var(--line)",
-              borderRadius: "12px",
-              padding: "12px 18px",
-              fontWeight: 700,
-              background: "transparent",
-              color: "var(--text)",
-              textDecoration: "none",
-              fontSize: ".95rem",
-            }}
-          >
+          <Link to="/" className="btn btn-outline btn-sm">
             Back to home
           </Link>
         </div>

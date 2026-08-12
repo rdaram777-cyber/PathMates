@@ -106,34 +106,13 @@ function Home() {
             <Link
               to="/search"
               search={{ q: "" }}
-              style={{
-                border: "none",
-                borderRadius: "14px",
-                padding: "15px 26px",
-                fontWeight: 700,
-                fontSize: "1rem",
-                background: "var(--accent)",
-                color: "#fff",
-                textDecoration: "none",
-                display: "inline-block",
-                boxShadow: "0 8px 24px rgba(233,121,69,.28)",
-              }}
+              className="btn btn-primary"
             >
               Browse experiences
             </Link>
             <Link
               to="/share"
-              style={{
-                border: "1px solid var(--line)",
-                borderRadius: "14px",
-                padding: "15px 26px",
-                fontWeight: 700,
-                fontSize: "1rem",
-                background: "transparent",
-                color: "var(--text)",
-                textDecoration: "none",
-                display: "inline-block",
-              }}
+              className="btn btn-outline"
             >
               Share your experience
             </Link>
@@ -238,27 +217,13 @@ function Home() {
               </p>
               <Link
                 to="/share"
-                style={{
-                  display: "inline-block",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "13px 22px",
-                  fontWeight: 700,
-                  background: "var(--accent)",
-                  color: "#fff",
-                  textDecoration: "none",
-                }}
+                className="btn btn-primary btn-md"
               >
                 Be the first to share
               </Link>
             </div>
           ) : (
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "18px",
-              }}
               className="grid three-col"
             >
               {experiences.map((exp) => (
@@ -318,11 +283,6 @@ function Home() {
           </div>
 
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: "18px",
-            }}
             className="grid two-col"
           >
             <div className="card">
@@ -332,17 +292,8 @@ function Home() {
               </p>
               <a
                 href="#experiences"
-                style={{
-                  display: "inline-block",
-                  marginTop: "16px",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "12px 18px",
-                  fontWeight: 700,
-                  background: "var(--accent)",
-                  color: "#fff",
-                  textDecoration: "none",
-                }}
+                className="btn btn-primary btn-sm"
+                style={{ marginTop: "16px" }}
               >
                 Find my PathMate →
               </a>
@@ -355,17 +306,8 @@ function Home() {
               </p>
               <Link
                 to="/share"
-                style={{
-                  display: "inline-block",
-                  marginTop: "16px",
-                  border: "1px solid var(--line)",
-                  borderRadius: "12px",
-                  padding: "12px 18px",
-                  fontWeight: 700,
-                  background: "transparent",
-                  color: "var(--text)",
-                  textDecoration: "none",
-                }}
+                className="btn btn-outline btn-sm"
+                style={{ marginTop: "16px" }}
               >
                 Share my experience →
               </Link>
@@ -432,11 +374,6 @@ function Home() {
           </div>
 
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "18px",
-            }}
             className="steps three-col"
           >
             <div
@@ -531,32 +468,14 @@ function Home() {
           {user ? (
             <Link
               to="/share"
-              style={{
-                display: "inline-block",
-                border: "none",
-                borderRadius: "12px",
-                padding: "14px 24px",
-                fontWeight: 700,
-                background: "var(--accent)",
-                color: "#fff",
-                textDecoration: "none",
-              }}
+              className="btn btn-primary btn-md"
             >
               Share your experience
             </Link>
           ) : (
             <Link
               to="/signup"
-              style={{
-                display: "inline-block",
-                border: "none",
-                borderRadius: "12px",
-                padding: "14px 24px",
-                fontWeight: 700,
-                background: "var(--accent)",
-                color: "#fff",
-                textDecoration: "none",
-              }}
+              className="btn btn-primary btn-md"
             >
               Start exploring experiences
             </Link>
@@ -644,13 +563,12 @@ function ExperienceCard({
       style={{ textDecoration: "none", color: "inherit", display: "block" }}
     >
       <div
-        className="card"
+        className="card card-hover"
         style={{
           height: "100%",
           display: "flex",
           flexDirection: "column",
           gap: "14px",
-          transition: "transform .18s ease, box-shadow .18s ease",
         }}
       >
         {/* Category + duration */}

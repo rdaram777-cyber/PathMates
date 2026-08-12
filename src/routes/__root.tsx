@@ -234,21 +234,7 @@ function AppShell() {
             <button
               onClick={toggleTheme}
               aria-label="Toggle dark mode"
-              style={{
-                border: "1px solid var(--line)",
-                borderRadius: "10px",
-                padding: "8px",
-                background: "transparent",
-                color: "var(--text)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: "44px",
-                minHeight: "44px",
-                fontSize: "1.1rem",
-                lineHeight: 1,
-              }}
+              className="icon-btn"
             >
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
@@ -260,21 +246,8 @@ function AppShell() {
                   <button
                     onClick={() => setNotifOpen(!notifOpen)}
                     aria-label="Notifications"
-                    style={{
-                      position: "relative",
-                      border: "1px solid var(--line)",
-                      borderRadius: "10px",
-                      padding: "8px",
-                      background: "transparent",
-                      color: "var(--text)",
-                      cursor: "pointer",
-                      minWidth: "44px",
-                      minHeight: "44px",
-                      fontSize: "1.1rem",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    className="icon-btn"
+                    style={{ position: "relative" }}
                   >
                     🔔
                     {unreadCount > 0 && (
@@ -358,7 +331,6 @@ function AppShell() {
                     background: "transparent",
                     color: "var(--text)",
                     cursor: "pointer",
-                    fontSize: "inherit",
                     font: "inherit",
                   }}
                 >
@@ -366,7 +338,7 @@ function AppShell() {
                 </button>
               </>
             ) : (
-              <>
+              <div className="nav-auth">
                 <Link
                   to="/login"
                   className="btn btn-outline nav-links"
@@ -401,7 +373,7 @@ function AppShell() {
                 >
                   Get started
                 </Link>
-              </>
+              </div>
             )}
 
             {/* Hamburger */}
@@ -581,16 +553,10 @@ function AppShell() {
               </Link>
               <Link
                 to="/signup"
+                className="btn btn-primary btn-md"
                 style={{
-                  display: "inline-block",
-                  marginTop: "8px",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "14px 24px",
-                  fontWeight: 700,
-                  background: "var(--accent)",
-                  color: "#fff",
-                  textDecoration: "none",
+                  display: "block",
+                  marginTop: "12px",
                   textAlign: "center",
                 }}
                 onClick={() => setMobileOpen(false)}
