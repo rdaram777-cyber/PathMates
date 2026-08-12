@@ -36,7 +36,7 @@ export const Route = createRootRoute({
         content: "https://site-virid-eight-86.vercel.app/",
       },
       { property: "og:site_name", content: "PathMates" },
-      { name: "google-site-verification", content: "JtQvmFUjM9j_OMFZS8AMBYFoRZl0cPXOH5oqO87wjDQ" },
+      { name: "google-site-verification", content: "uAPc4FFTIijpy-RAYB58Y6_VHLMKfhPu-xmE_Wi46oo" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "PathMates" },
       {
