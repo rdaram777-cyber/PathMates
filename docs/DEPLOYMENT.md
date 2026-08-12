@@ -138,3 +138,13 @@ bun run go-live                # deploys exactly that tag's code
   `set -a; source .env; set +a; bun run build && bash build-vercel.sh &&
   bunx vercel deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN" --name site --scope pathmates`
   which re-aliases the domain to the new working deployment.
+---
+## Razorpay domain registration (REQUIRED before real payments)
+Razorpay only accepts payments originating from domains registered on the
+merchant account. The live site domain MUST be added in the Razorpay dashboard:
+Settings → Website & App details → add `https://site-virid-eight-86.vercel.app`.
+- Until registered, Razorpay flags/aborts payments ("domain not registered") —
+  bookings stay `pending` and no money moves.
+- When a custom domain is added later, register it there too (and update the
+  webhook URL in the same dashboard — see WEBHOOK.md).
+- Merchant: M/s. DARAM RAMYA (Merchant ID TJpZOzZKJLwtpB).
