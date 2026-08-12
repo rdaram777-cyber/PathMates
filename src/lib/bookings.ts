@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { createSupabaseClient } from "~/db";
 import {
   calculateCommission,
@@ -16,6 +17,7 @@ import { createNotification } from "~/lib/notifications";
 import {
   formatAmountCents,
   getTierPriceCents,
+  getUserCurrency,
   isSupportedCurrency,
   type CurrencyCode,
 } from "~/lib/currency";
@@ -194,7 +196,10 @@ export const createBooking = createServerFn({ method: "POST" })
       experience_id?: string | null;
       scheduled_at: string;
       duration_minutes: number;
-      /** Detected currency ("INR" | "USD"). The amount is always computed server-side from TIER_PRICING. */
+      /** Explicitly chosen payment currency ("INR" | "USD") passed by the book
+       *  page's currency selector. Falls back to server-side accept-language
+       *  detection (getUserCurrency(request)) if absent. The amount is always
+       *  computed server-side from TIER_PRICING. */
       currency?: string;
       pathmate_name: string;
       experience_title?: string;
@@ -208,10 +213,21 @@ export const createBooking = createServerFn({ method: "POST" })
     if (!user) throw new Error("You must be logged in to book a call.");
 
     // Fixed tier pricing: validate the duration and derive the amount from the
-    // platform-wide table — never trust a client-supplied amount.
-    const currency: CurrencyCode = isSupportedCurrency(data.currency)
-      ? data.currency
-      : "USD";
+    // platform-wide table — never trust a client-supplied amount. Use the
+    // currency the user explicitly selected on the book page (₹ for UPI, $ for
+    // cards); fall back to accept-language detection for any other caller.
+    let currency: CurrencyCode;
+    if (isSupportedCurrency(data.currency)) {
+      currency = data.currency;
+    } else {
+      let request: Request | undefined;
+      try {
+        request = getRequest();
+      } catch {
+        request = undefined;
+      }
+      currency = getUserCurrency(request).code;
+    }
     const amountCents = getTierPriceCents(data.duration_minutes, currency);
     // Calculate commission (dynamic from DB)
     const commissionPercent = await getCommissionPercent();

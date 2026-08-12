@@ -12,6 +12,7 @@ import {
 import {
   getUserCurrency,
   formatTierPrice,
+  formatTierPriceBoth,
   TIER_DURATIONS,
   type CurrencyCode,
   type TierDuration,
@@ -328,7 +329,7 @@ function BookPage() {
                 color: "var(--accent)",
               }}
             >
-              Sessions from {formatTierPrice(15, currency)}
+              Sessions from {formatTierPriceBoth(15)}
             </div>
             <div style={{ marginTop: "4px" }}>
               <StarRatingInline rating={profile.avg_rating ?? 0} count={profile.review_count ?? 0} />
@@ -477,11 +478,91 @@ function BookPage() {
                     opacity: 0.8,
                   }}
                 >
-                  {formatTierPrice(mins, currency)}
+                  {formatTierPriceBoth(mins)}
                 </span>
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Payment currency — choose ₹ (INR) for UPI, or $ (USD) for cards.
+            Defaults to the visitor's detected currency, but can be switched any
+            time before confirming. The choice flows into the Razorpay order. */}
+        <div style={{ marginBottom: "24px" }}>
+          <h2
+            style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "12px" }}
+          >
+            Pay in
+          </h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
+              maxWidth: "360px",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setCurrency({ code: "INR", symbol: "₹" })}
+              aria-pressed={currency.code === "INR"}
+              style={{
+                border:
+                  currency.code === "INR"
+                    ? "2px solid var(--accent)"
+                    : "1px solid var(--line)",
+                borderRadius: "12px",
+                padding: "12px",
+                background:
+                  currency.code === "INR" ? "#fff5f0" : "var(--card)",
+                color:
+                  currency.code === "INR" ? "var(--accent)" : "var(--text)",
+                fontWeight: 700,
+                cursor: "pointer",
+                fontSize: ".92rem",
+                font: "inherit",
+                textAlign: "center",
+              }}
+            >
+              Pay in ₹ (INR)
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency({ code: "USD", symbol: "$" })}
+              aria-pressed={currency.code === "USD"}
+              style={{
+                border:
+                  currency.code === "USD"
+                    ? "2px solid var(--accent)"
+                    : "1px solid var(--line)",
+                borderRadius: "12px",
+                padding: "12px",
+                background:
+                  currency.code === "USD" ? "#fff5f0" : "var(--card)",
+                color:
+                  currency.code === "USD" ? "var(--accent)" : "var(--text)",
+                fontWeight: 700,
+                cursor: "pointer",
+                fontSize: ".92rem",
+                font: "inherit",
+                textAlign: "center",
+              }}
+            >
+              Pay in $ (USD)
+            </button>
+          </div>
+          {currency.code === "INR" && (
+            <p
+              style={{
+                color: "var(--muted)",
+                fontSize: ".85rem",
+                marginTop: "10px",
+                lineHeight: 1.45,
+              }}
+            >
+              UPI available for ₹ (INR) payments.
+            </p>
+          )}
         </div>
 
         {/* Price display & confirm */}
@@ -544,7 +625,12 @@ function BookPage() {
               <span style={{ fontSize: ".78rem", fontWeight: 700, color: "var(--muted)", letterSpacing: ".04em", textTransform: "uppercase" }}>
                 Secure payment
               </span>
-              {["Razorpay", "UPI", "Visa", "Mastercard"].map((method) => (
+              {[
+                "Razorpay",
+                ...(currency.code === "INR" ? ["UPI"] : []),
+                "Visa",
+                "Mastercard",
+              ].map((method) => (
                 <span key={method} style={{ border: "1px solid var(--line)", borderRadius: "999px", padding: "4px 10px", fontSize: ".78rem", fontWeight: 700, color: "var(--text)", background: "var(--card)" }}>
                   {method}
                 </span>
