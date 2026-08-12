@@ -124,3 +124,17 @@ bun run go-live                # deploys exactly that tag's code
 | Webhook deliveries 400 | `RAZORPAY_WEBHOOK_SECRET` mismatch (app vs Razorpay) → `WEBHOOK.md` |
 | `bun run build` OOM/killed | Workspace memory cap → stop dev server first, retry; do not parallelize builds |
 | `Blocked request` / `DisallowedHost` | Host allowlist on the app — disable it or add the Vercel alias |
+---
+## Auto-deploy & the production domain (updated 2026-08-11)
+- The Vercel project (`site`, team `pathmates`) is git-linked to `main`
+  (`productionBranch: main`), so every merge to `main` triggers an auto-deploy.
+- Build settings were broken (plain `vite` preset, no build command) and produced
+  deployments with a missing file tree (site 404s). Fixed on 2026-08-11 via
+  Vercel API: `installCommand: "bun install"`, `buildCommand: "bash ./build-vercel.sh"`
+  (Build Output API bundle). Verified working: remote build deployed + aliased
+  `site-virid-eight-86.vercel.app` in ~29s.
+- The production domain is `https://site-virid-eight-86.vercel.app` (the project's
+  only domain). If it ever 404s again, the safest fix is a manual prod deploy:
+  `set -a; source .env; set +a; bun run build && bash build-vercel.sh &&
+  bunx vercel deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN" --name site --scope pathmates`
+  which re-aliases the domain to the new working deployment.
