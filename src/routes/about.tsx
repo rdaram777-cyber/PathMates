@@ -174,11 +174,6 @@ function AboutPage() {
           }}
         >
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: "18px",
-            }}
             className="grid two-col"
           >
             <div className="card">
@@ -263,11 +258,6 @@ function AboutPage() {
           </div>
 
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "18px",
-            }}
             className="steps three-col"
           >
             <div
@@ -358,11 +348,6 @@ function AboutPage() {
           </div>
 
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "18px",
-            }}
             className="grid three-col"
           >
             <div className="card">

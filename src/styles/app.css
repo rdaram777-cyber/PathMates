@@ -59,6 +59,24 @@
     padding: 25px;
   }
 
+  /* Card grids — base layouts live in CSS so the ≤768px media query can
+     collapse them to one column (inline gridTemplateColumns would win). */
+  .grid.two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .grid.three-col {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .steps.three-col {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
   /* Subtle lift for clickable cards (featured experiences) */
   .card-hover {
     transition:
