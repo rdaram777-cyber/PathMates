@@ -3,16 +3,23 @@ import { useAuth } from "~/lib/auth";
 import { getExperiences, type ExperienceWithDetails } from "~/lib/experiences";
 import { getHomepageStats } from "~/lib/stats";
 import { formatTierPriceBoth } from "~/lib/currency";
+import { getRecentReviews, type HomepageReview } from "~/lib/reviews";
+import { StarRating } from "~/components/StarRating";
+import { siteUrl } from "~/lib/site";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [allExperiences, stats] = await Promise.all([
+    const [allExperiences, stats, reviews] = await Promise.all([
       getExperiences(),
       getHomepageStats(),
+      getRecentReviews(),
     ]);
     // Latest 6 for the featured grid (getExperiences already orders newest first).
-    return { experiences: allExperiences.slice(0, 6), stats };
+    return { experiences: allExperiences.slice(0, 6), stats, reviews };
   },
+  head: () => ({
+    links: [{ rel: "canonical", href: siteUrl("/") }],
+  }),
   component: Home,
 });
 
@@ -22,7 +29,7 @@ function formatCount(n: number): string {
 }
 
 function Home() {
-  const { experiences, stats } = Route.useLoaderData();
+  const { experiences, stats, reviews } = Route.useLoaderData();
   const { user } = useAuth();
 
   return (
@@ -103,6 +110,68 @@ function Home() {
               Share your experience
             </Link>
           </div>
+
+          {/* Trust line — every claim is true of the live platform */}
+          <p
+            style={{
+              margin: "28px auto 0",
+              color: "var(--muted)",
+              fontSize: ".95rem",
+              fontWeight: 600,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span>Secure payments</span>
+            <span style={{ color: "var(--accent)", fontWeight: 800 }}>•</span>
+            <span>Verified mentors</span>
+            <span style={{ color: "var(--accent)", fontWeight: 800 }}>•</span>
+            <span>Instant booking confirmation</span>
+          </p>
+
+          {/* Secure-payment badges — methods available through Razorpay */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              marginTop: "18px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              style={{
+                fontSize: ".78rem",
+                fontWeight: 700,
+                color: "var(--muted)",
+                letterSpacing: ".04em",
+                textTransform: "uppercase",
+              }}
+            >
+              Secure payment
+            </span>
+            {["Razorpay", "UPI", "Visa", "Mastercard"].map((method) => (
+              <span
+                key={method}
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: "999px",
+                  padding: "4px 10px",
+                  fontSize: ".78rem",
+                  fontWeight: 700,
+                  color: "var(--text)",
+                  background: "var(--card)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {method}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -114,15 +183,19 @@ function Home() {
             margin: "auto",
           }}
         >
-          <div className="stats-grid">
+          <div
+            className={`stats-grid${stats.avgRating !== null ? " five" : ""}`}
+          >
             <StatCell value={formatCount(stats.mentors)} label="Mentors" />
             <StatCell value={formatCount(stats.experiences)} label="Experiences" />
             <StatCell value={formatCount(stats.bookings)} label="Paid bookings" />
-            {stats.avgRating !== null ? (
+            <StatCell
+              value={formatCount(stats.verifiedMentors)}
+              label="Verified mentors"
+            />
+            {stats.avgRating !== null && (
+              // Only shown once real ratings exist — never a fake "0.0".
               <StatCell value={stats.avgRating.toFixed(1)} label="Avg. rating" />
-            ) : (
-              // No ratings yet — honest placeholder instead of a fake "0.0".
-              <StatCell value="New" label="platform" />
             )}
           </div>
         </div>
@@ -214,6 +287,100 @@ function Home() {
             >
               {experiences.map((exp) => (
                 <ExperienceCard key={exp.id} experience={exp} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* What Explorers say — real reviews from real calls (never fake) */}
+      <section
+        className="section"
+        id="reviews"
+        style={{ padding: "70px 0", background: "var(--card)" }}
+      >
+        <div
+          style={{
+            width: "min(1160px, calc(100% - 32px))",
+            margin: "auto",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "20px",
+              alignItems: "end",
+              marginBottom: "28px",
+            }}
+            className="heading"
+          >
+            <div>
+              <span
+                style={{
+                  display: "inline-block",
+                  background: "#fff1e9",
+                  color: "#c85b2e",
+                  borderRadius: "999px",
+                  padding: "7px 12px",
+                  fontSize: ".85rem",
+                  fontWeight: 700,
+                  marginBottom: "10px",
+                }}
+              >
+                From the first calls
+              </span>
+              <h2
+                style={{
+                  fontSize: "clamp(1.8rem, 4vw, 3rem)",
+                  letterSpacing: "-.05em",
+                  margin: 0,
+                }}
+              >
+                What Explorers say
+              </h2>
+            </div>
+            <p style={{ maxWidth: "480px", color: "var(--muted)", margin: 0 }}>
+              Real reviews from real calls — posted only by Explorers who
+              booked and paid.
+            </p>
+          </div>
+
+          {reviews.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "64px 24px",
+                background: "var(--bg)",
+                border: "1px dashed var(--line)",
+                borderRadius: "20px",
+              }}
+            >
+              <div style={{ fontSize: "2.6rem", marginBottom: "12px" }}>💬</div>
+              <h3 style={{ margin: "0 0 8px", fontSize: "1.3rem" }}>
+                Reviews appear after the first calls
+              </h3>
+              <p
+                style={{
+                  color: "var(--muted)",
+                  maxWidth: "440px",
+                  margin: "0 auto",
+                }}
+              >
+                Every review here comes from a paid 1:1 call. Be one of the
+                first — book an experience and tell us how it went.
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              {reviews.map((review) => (
+                <ReviewCard key={review.id} review={review} />
               ))}
             </div>
           )}
@@ -557,7 +724,7 @@ function ExperienceCard({
           gap: "14px",
         }}
       >
-        {/* Category + duration */}
+        {/* Category */}
         <div
           style={{
             display: "flex",
@@ -578,20 +745,10 @@ function ExperienceCard({
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              maxWidth: "70%",
+              maxWidth: "100%",
             }}
           >
             {categoryName}
-          </span>
-          <span
-            style={{
-              fontSize: ".76rem",
-              fontWeight: 600,
-              color: "var(--muted)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            15–60 min calls
           </span>
         </div>
 
@@ -718,7 +875,7 @@ function ExperienceCard({
           </div>
         </div>
 
-        {/* Price + link */}
+        {/* Price + link — one prominent chip for price & duration */}
         <div
           style={{
             display: "flex",
@@ -727,19 +884,24 @@ function ExperienceCard({
             gap: "10px",
             borderTop: "1px solid var(--line)",
             paddingTop: "14px",
+            flexWrap: "wrap",
           }}
         >
-          <div>
-            <div
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 800,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {`From ${fromPrice}`}
-            </div>
-          </div>
+          <span
+            style={{
+              display: "inline-block",
+              background: "var(--accent)",
+              color: "#fff",
+              borderRadius: "999px",
+              padding: "8px 14px",
+              fontSize: ".85rem",
+              fontWeight: 800,
+              letterSpacing: "-.01em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {`From ${fromPrice} · 15–60 min calls`}
+          </span>
           <span
             style={{
               fontSize: ".85rem",
@@ -753,5 +915,114 @@ function ExperienceCard({
         </div>
       </div>
     </Link>
+  );
+}
+
+/** Testimonial card — real review data only (no fabricated content). */
+function ReviewCard({ review }: { review: HomepageReview }) {
+  const name = review.reviewerName || "Explorer";
+  const initials =
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "E";
+  return (
+    <div
+      style={{
+        background: "var(--bg)",
+        border: "1px solid var(--line)",
+        borderRadius: "18px",
+        padding: "24px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "14px",
+        height: "100%",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
+          flexWrap: "wrap",
+        }}
+      >
+        <StarRating rating={review.rating} size="sm" />
+        <span style={{ fontSize: ".75rem", color: "var(--muted)", fontWeight: 600 }}>
+          {new Date(review.created_at).toLocaleDateString("en-US", {
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+      </div>
+      {review.content && (
+        <p style={{ margin: 0, fontSize: ".95rem", lineHeight: 1.6, flex: 1 }}>
+          {review.content}
+        </p>
+      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          borderTop: "1px solid var(--line)",
+          paddingTop: "14px",
+        }}
+      >
+        {review.reviewerAvatar ? (
+          <img
+            src={review.reviewerAvatar}
+            alt={name}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              objectFit: "cover",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#fff1e9",
+              color: "#c85b2e",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 800,
+              fontSize: ".82rem",
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </div>
+        )}
+        <div style={{ minWidth: 0 }}>
+          <strong style={{ fontSize: ".92rem", display: "block" }}>
+            {name}
+          </strong>
+          {review.experienceTitle && (
+            <span
+              style={{
+                fontSize: ".8rem",
+                color: "var(--muted)",
+                display: "block",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {review.experienceTitle}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

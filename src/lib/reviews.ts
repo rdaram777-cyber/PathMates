@@ -46,6 +46,100 @@ export interface PathmateRating {
   recent_reviews: ReviewWithReviewer[];
 }
 
+// ---- Recent reviews for the homepage testimonials section ----
+
+export interface HomepageReview {
+  id: string;
+  rating: number;
+  content: string | null;
+  created_at: string;
+  reviewerName: string | null;
+  reviewerAvatar: string | null;
+  experienceTitle: string | null;
+}
+
+/**
+ * Latest reviews (newest first) for the homepage "What Explorers say"
+ * section. Joins reviewer name/avatar from profiles and the booked
+ * experience title via bookings — resolved in memory because the FKs point
+ * at auth.users(id) (see attachReviewers). Public read: service role.
+ */
+export const getRecentReviews = createServerFn({ method: "GET" }).handler(
+  async (): Promise<HomepageReview[]> => {
+    const sb = createSupabaseClient({ useServiceRole: true });
+
+    const { data: reviews } = await sb
+      .from("reviews")
+      .select("id, booking_id, reviewer_id, rating, content, created_at")
+      .order("created_at", { ascending: false })
+      .limit(9);
+    const rows = (reviews ?? []) as Array<{
+      id: string;
+      booking_id: string | null;
+      reviewer_id: string;
+      rating: number;
+      content: string | null;
+      created_at: string;
+    }>;
+    if (rows.length === 0) return [];
+
+    // Reviewer names/avatars (profiles.id == auth.users.id).
+    const reviewerIds = [...new Set(rows.map((r) => r.reviewer_id))];
+    const { data: reviewerProfiles } = await sb
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", reviewerIds);
+    const reviewerById = new Map(
+      (reviewerProfiles ?? []).map((p) => [p.id, p]),
+    );
+
+    // Experience titles via the booking's experience_id.
+    const bookingIds = [
+      ...new Set(rows.map((r) => r.booking_id).filter((b): b is string => !!b)),
+    ];
+    const bookingToExperience = new Map<string, string | null>();
+    if (bookingIds.length > 0) {
+      const { data: bookings } = await sb
+        .from("bookings")
+        .select("id, experience_id")
+        .in("id", bookingIds);
+      const experienceIds = [
+        ...new Set(
+          (bookings ?? [])
+            .map((b) => b.experience_id)
+            .filter((id): id is string => !!id),
+        ),
+      ];
+      const titleById = new Map<string, string | null>();
+      if (experienceIds.length > 0) {
+        const { data: experiences } = await sb
+          .from("experiences")
+          .select("id, title")
+          .in("id", experienceIds);
+        for (const exp of experiences ?? []) titleById.set(exp.id, exp.title);
+      }
+      for (const b of bookings ?? []) {
+        bookingToExperience.set(b.id, b.experience_id ? (titleById.get(b.experience_id) ?? null) : null);
+      }
+    }
+
+    return rows.map((r) => {
+      const reviewer = reviewerById.get(r.reviewer_id);
+      return {
+        id: r.id,
+        rating: r.rating,
+        content: r.content,
+        created_at: r.created_at,
+        reviewerName: reviewer?.full_name ?? null,
+        reviewerAvatar: reviewer?.avatar_url ?? null,
+        experienceTitle: r.booking_id
+          ? (bookingToExperience.get(r.booking_id) ?? null)
+          : null,
+      };
+    });
+  },
+);
+
 // ---- Get reviews for a PathMate ----
 
 export const getPathmateReviews = createServerFn({ method: "GET" })

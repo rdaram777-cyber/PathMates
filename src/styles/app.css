@@ -200,6 +200,10 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
   }
+  /* Five cells only when real ratings exist (avg rating is a 5th stat). */
+  .stats-grid.five {
+    grid-template-columns: repeat(5, 1fr);
+  }
 
   /* Navbar */
   .nav-container {
@@ -355,6 +359,13 @@
     }
     .stats-grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+    /* With 5 cells the trailing rating cell spans the full row. */
+    .stats-grid.five {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .stats-grid.five > *:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
     }
     .heading {
       display: block;

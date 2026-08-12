@@ -4,9 +4,32 @@ import { useAuth } from "~/lib/auth";
 import { getExperience, deleteExperience } from "~/lib/experiences";
 import { parseExperienceContent } from "~/lib/experience-sections";
 import { formatTierPriceBoth } from "~/lib/currency";
+import { siteUrl } from "~/lib/site";
 
 export const Route = createFileRoute("/experiences/$experienceId/")({
   loader: ({ params }) => getExperience({ data: params.experienceId }),
+  head: ({ loaderData }) => {
+    const exp = loaderData;
+    const author = exp?.profiles?.full_name || "a PathMate";
+    const title = exp ? `${exp.title} — PathMates` : "Experience — PathMates";
+    const description = exp
+      ? `Real story from ${author}${exp.categories?.name ? ` in ${exp.categories.name}` : ""}: what actually happened, the real numbers, and the real advice. Book a 1:1 call and ask anything.`
+      : "A real experience story on PathMates.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+      ],
+      links: [
+        {
+          rel: "canonical",
+          href: exp ? siteUrl(`/experiences/${exp.id}`) : siteUrl("/"),
+        },
+      ],
+    };
+  },
   component: ExperienceDetailPage,
 });
 
