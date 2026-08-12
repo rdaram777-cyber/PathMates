@@ -1,13 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { useAuth } from "~/lib/auth";
 import { getExperiences, type ExperienceWithDetails } from "~/lib/experiences";
 import { getHomepageStats } from "~/lib/stats";
-import {
-  formatTierPrice,
-  getUserCurrency,
-  type CurrencyCode,
-} from "~/lib/currency";
+import { formatTierPriceBoth } from "~/lib/currency";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -29,15 +24,6 @@ function formatCount(n: number): string {
 function Home() {
   const { experiences, stats } = Route.useLoaderData();
   const { user } = useAuth();
-  // Currency detection: default to USD for SSR/first paint, then switch to the
-  // user's detected currency (₹ for India, $ for everyone else) after mount —
-  // same pattern as the booking/experience pages.
-  const [currency, setCurrency] = useState<{ code: CurrencyCode; symbol: string }>(
-    { code: "USD", symbol: "$" },
-  );
-  useEffect(() => {
-    setCurrency(getUserCurrency());
-  }, []);
 
   return (
     <main>
@@ -227,7 +213,7 @@ function Home() {
               className="grid three-col"
             >
               {experiences.map((exp) => (
-                <ExperienceCard key={exp.id} experience={exp} currency={currency} />
+                <ExperienceCard key={exp.id} experience={exp} />
               ))}
             </div>
           )}
@@ -526,13 +512,12 @@ function StatCell({ value, label }: { value: string; label: string }) {
 }
 
 /** Featured experience card: real data only — avatar, verified badge, rating,
- *  price ("From" the cheapest tier), duration, title, category. */
+ *  price ("From" the cheapest tier, shown in both currencies), duration,
+ *  title, category. */
 function ExperienceCard({
   experience,
-  currency,
 }: {
   experience: ExperienceWithDetails;
-  currency: { code: CurrencyCode; symbol: string };
 }) {
   const profile = experience.profiles;
   const name = profile?.full_name || "PathMate";
@@ -553,8 +538,9 @@ function ExperienceCard({
     experience.content.length > 140
       ? experience.content.slice(0, 140).trimEnd() + "…"
       : experience.content;
-  // Cheapest tier (15-min call) as the "From" price.
-  const fromPrice = formatTierPrice(15, currency);
+  // Cheapest tier (15-min call) as the "From" price — shown in both INR + USD
+  // so every visitor sees the full price picture regardless of locale.
+  const fromPrice = formatTierPriceBoth(15);
 
   return (
     <Link

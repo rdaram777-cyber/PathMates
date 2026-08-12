@@ -72,6 +72,27 @@ export function formatTierPrice(duration: number, currency: { code: CurrencyCode
   return `${currency.symbol}${formatted}`;
 }
 
+/**
+ * Format a tier's price in BOTH currencies, INR first — e.g. "₹199 / $4".
+ * Built directly from TIER_PRICING (no locale detection), so it is a pure
+ * static string: safe for SSR/hydration and identical for every visitor.
+ */
+export function formatTierPriceBoth(duration: number): string {
+  const tier = TIER_PRICING[duration as TierDuration];
+  if (!tier) {
+    throw new Error(`Invalid session duration: ${duration} minutes.`);
+  }
+  const inrValue = tier.inr / 100;
+  const usdValue = tier.usd / 100;
+  const inrFormatted = Number.isInteger(inrValue)
+    ? String(inrValue)
+    : inrValue.toFixed(2);
+  const usdFormatted = Number.isInteger(usdValue)
+    ? String(usdValue)
+    : usdValue.toFixed(2);
+  return `₹${inrFormatted} / $${usdFormatted}`;
+}
+
 /** Currency symbol for a booking's currency column ("INR" | "USD"). Defaults to "$". */
 export function currencySymbol(code: string | null | undefined): string {
   return code === "INR" ? "₹" : "$";

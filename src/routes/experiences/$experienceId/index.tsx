@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "~/lib/auth";
 import { getExperience, deleteExperience } from "~/lib/experiences";
 import { parseExperienceContent } from "~/lib/experience-sections";
-import { getUserCurrency, formatTierPrice, type CurrencyCode } from "~/lib/currency";
+import { formatTierPriceBoth } from "~/lib/currency";
 
 export const Route = createFileRoute("/experiences/$experienceId/")({
   loader: ({ params }) => getExperience({ data: params.experienceId }),
@@ -17,14 +17,6 @@ function ExperienceDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-  // Currency detection: default to USD for SSR/first paint, then switch to the
-  // user's detected currency (₹ for India, $ for everyone else) after mount.
-  const [currency, setCurrency] = useState<{ code: CurrencyCode; symbol: string }>(
-    { code: "USD", symbol: "$" },
-  );
-  useEffect(() => {
-    setCurrency(getUserCurrency());
-  }, []);
 
   if (experience === undefined) {
     return (
@@ -141,7 +133,7 @@ function ExperienceDetailPage() {
               params={{ experienceId: experience.id }}
               className="btn btn-primary btn-md"
             >
-              Book a 30-min call · {formatTierPrice(30, currency)}
+              Book a 30-min call · {formatTierPriceBoth(30)}
             </Link>
           ) : (
             <Link
