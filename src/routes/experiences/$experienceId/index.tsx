@@ -42,7 +42,7 @@ function ExperienceDetailPage() {
           <p style={{ color: "var(--muted)", marginBottom: "20px" }}>
             This experience may have been removed or the link is incorrect.
           </p>
-          <Link to="/" style={{ display: "inline-block", border: "none", borderRadius: "12px", padding: "12px 24px", fontWeight: 700, background: "var(--accent)", color: "#fff", textDecoration: "none" }}>
+          <Link to="/" className="btn btn-primary btn-md">
             Back to home
           </Link>
         </div>
@@ -93,7 +93,7 @@ function ExperienceDetailPage() {
           {experience.title}
         </h1>
 
-        <Link to="/profile/$userId" params={{ userId: experience.user_id }} style={{ display: "flex", gap: "12px", alignItems: "center", textDecoration: "none", color: "inherit", marginBottom: "28px", padding: "16px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "14px" }}>
+        <Link to="/profile/$userId" params={{ userId: experience.user_id }} style={{ display: "flex", gap: "12px", alignItems: "center", textDecoration: "none", color: "inherit", marginBottom: "28px", padding: "16px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "16px" }}>
           <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#fff1e9", color: "#c85b2e", display: "grid", placeItems: "center", fontWeight: 800, fontSize: "1.2rem", flexShrink: 0 }}>
             {initials}
           </div>
@@ -139,14 +139,14 @@ function ExperienceDetailPage() {
             <Link
               to="/book/$experienceId"
               params={{ experienceId: experience.id }}
-              style={{ border: "none", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "var(--accent)", color: "#fff", cursor: "pointer", textDecoration: "none", fontSize: "inherit", display: "inline-block" }}
+              className="btn btn-primary btn-md"
             >
               Book a 30-min call · {formatTierPrice(30, currency)}
             </Link>
           ) : (
             <Link
               to="/login"
-              style={{ border: "none", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "var(--accent)", color: "#fff", cursor: "pointer", textDecoration: "none", fontSize: "inherit", display: "inline-block" }}
+              className="btn btn-primary btn-md"
             >
               Log in to book a call
             </Link>
@@ -154,10 +154,10 @@ function ExperienceDetailPage() {
 
           {isOwner && (
             <>
-              <Link to="/experiences/$experienceId/edit" params={{ experienceId: experience.id }} style={{ border: "1px solid var(--line)", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "transparent", color: "var(--text)", textDecoration: "none", fontSize: "inherit" }}>
+              <Link to="/experiences/$experienceId/edit" params={{ experienceId: experience.id }} className="btn btn-outline btn-md">
                 Edit
               </Link>
-              <button onClick={() => setShowConfirm(true)} style={{ border: "1px solid #fca5a5", borderRadius: "12px", padding: "14px 24px", fontWeight: 700, background: "transparent", color: "#b42318", cursor: "pointer", fontSize: "inherit", font: "inherit" }}>
+              <button onClick={() => setShowConfirm(true)} style={{ border: "1px solid #fca5a5", borderRadius: "14px", padding: "14px 24px", fontWeight: 700, background: "transparent", color: "#b42318", cursor: "pointer", fontSize: "inherit", font: "inherit" }}>
                 Delete
               </button>
             </>
@@ -181,10 +181,10 @@ function ExperienceDetailPage() {
             <h3 style={{ margin: "0 0 8px", fontSize: "1.3rem" }}>Delete this experience?</h3>
             <p style={{ color: "var(--muted)", marginBottom: "24px" }}>This action cannot be undone. The experience will be permanently removed.</p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-              <button onClick={() => setShowConfirm(false)} disabled={deleting} style={{ border: "1px solid var(--line)", borderRadius: "12px", padding: "12px 18px", fontWeight: 700, background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "inherit", font: "inherit" }}>
+              <button onClick={() => setShowConfirm(false)} disabled={deleting} style={{ border: "1px solid var(--line)", borderRadius: "14px", padding: "12px 18px", fontWeight: 700, background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: "inherit", font: "inherit" }}>
                 Cancel
               </button>
-              <button onClick={handleDelete} disabled={deleting} style={{ border: "none", borderRadius: "12px", padding: "12px 18px", fontWeight: 700, background: deleting ? "#fca5a5" : "#dc2626", color: "#fff", cursor: deleting ? "not-allowed" : "pointer", fontSize: "inherit", font: "inherit" }}>
+              <button onClick={handleDelete} disabled={deleting} style={{ border: "none", borderRadius: "14px", padding: "12px 18px", fontWeight: 700, background: deleting ? "#fca5a5" : "#dc2626", color: "#fff", cursor: deleting ? "not-allowed" : "pointer", fontSize: "inherit", font: "inherit" }}>
                 {deleting ? "Deleting..." : "Yes, delete"}
               </button>
             </div>

@@ -424,34 +424,13 @@ function AboutPage() {
             <Link
               to="/search"
               search={{ q: "" }}
-              style={{
-                border: "none",
-                borderRadius: "14px",
-                padding: "15px 26px",
-                fontWeight: 700,
-                fontSize: "1rem",
-                background: "var(--accent)",
-                color: "#fff",
-                textDecoration: "none",
-                display: "inline-block",
-                boxShadow: "0 8px 24px rgba(233,121,69,.28)",
-              }}
+              className="btn btn-primary"
             >
               Browse experiences
             </Link>
             <Link
               to="/share"
-              style={{
-                border: "1px solid var(--line)",
-                borderRadius: "14px",
-                padding: "15px 26px",
-                fontWeight: 700,
-                fontSize: "1rem",
-                background: "transparent",
-                color: "var(--text)",
-                textDecoration: "none",
-                display: "inline-block",
-              }}
+              className="btn btn-outline"
             >
               Share your experience
             </Link>

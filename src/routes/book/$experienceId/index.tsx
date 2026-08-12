@@ -130,19 +130,7 @@ function BookPage() {
           <p style={{ color: "var(--muted)", marginBottom: "20px" }}>
             You need to log in before booking a call.
           </p>
-          <Link
-            to="/login"
-            style={{
-              display: "inline-block",
-              border: "none",
-              borderRadius: "12px",
-              padding: "12px 24px",
-              fontWeight: 700,
-              background: "var(--accent)",
-              color: "#fff",
-              textDecoration: "none",
-            }}
-          >
+          <Link to="/login" className="btn btn-primary btn-md">
             Log in
           </Link>
         </div>
@@ -166,7 +154,9 @@ function BookPage() {
           <h1 style={{ fontSize: "2rem", margin: "0 0 12px" }}>
             Experience not found
           </h1>
-          <Link to="/">Back to home</Link>
+          <Link to="/" className="btn btn-primary btn-md">
+            Back to home
+          </Link>
         </div>
       </main>
     );
@@ -456,7 +446,7 @@ function BookPage() {
           >
             Duration
           </h2>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="tier-grid">
             {TIER_DURATIONS.map((mins) => (
               <button
                 key={mins}
@@ -532,7 +522,7 @@ function BookPage() {
               style={{
                 width: "100%",
                 border: "none",
-                borderRadius: "12px",
+                borderRadius: "14px",
                 padding: "16px",
                 fontWeight: 700,
                 fontSize: "1.05rem",
@@ -545,7 +535,7 @@ function BookPage() {
               {loading ? "Creating booking..." : "Confirm & Pay"}
             </button>
 
-            <p style={{ color: "var(--muted)", fontSize: ".85rem", marginTop: "14px", lineHeight: 1.5 }}>
+            <p style={{ color: "var(--muted)", fontSize: ".88rem", marginTop: "14px", lineHeight: 1.5 }}>
               100% refund guarantee — if your PathMate doesn't attend the call, you get a full refund.
             </p>
 
@@ -555,7 +545,7 @@ function BookPage() {
                 Secure payment
               </span>
               {["Razorpay", "UPI", "Visa", "Mastercard"].map((method) => (
-                <span key={method} style={{ border: "1px solid var(--line)", borderRadius: "8px", padding: "4px 10px", fontSize: ".78rem", fontWeight: 700, color: "var(--text)", background: "var(--card)" }}>
+                <span key={method} style={{ border: "1px solid var(--line)", borderRadius: "999px", padding: "4px 10px", fontSize: ".78rem", fontWeight: 700, color: "var(--text)", background: "var(--card)" }}>
                   {method}
                 </span>
               ))}

@@ -95,7 +95,7 @@ function FaqPage() {
             style={{
               maxWidth: "820px",
               margin: "auto",
-              fontSize: "clamp(2.4rem, 6vw, 4.2rem)",
+              fontSize: "clamp(2.5rem, 6.5vw, 4.6rem)",
               lineHeight: "1.02",
               letterSpacing: "-.055em",
               fontWeight: 800,
@@ -213,18 +213,7 @@ function FaqPage() {
           <Link
             to="/search"
             search={{ q: "" }}
-            style={{
-              display: "inline-block",
-              border: "none",
-              borderRadius: "14px",
-              padding: "15px 26px",
-              fontWeight: 700,
-              fontSize: "1rem",
-              background: "var(--accent)",
-              color: "#fff",
-              textDecoration: "none",
-              boxShadow: "0 8px 24px rgba(233,121,69,.28)",
-            }}
+            className="btn btn-primary"
           >
             Browse experiences
           </Link>
