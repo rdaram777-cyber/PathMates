@@ -12,6 +12,7 @@ import { getUnreadCount } from "~/lib/notifications";
 import { supabase } from "~/lib/supabase";
 
 import appCss from "~/styles/app.css?url";
+import { siteUrl } from "~/lib/site";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -33,19 +34,20 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
       {
         property: "og:url",
-        content: "https://site-virid-eight-86.vercel.app/",
+        content: siteUrl("/"),
       },
       { property: "og:site_name", content: "PathMates" },
+      { property: "og:image", content: siteUrl("/og.png") },
       { name: "google-site-verification", content: "uAPc4FFTIijpy-RAYB58Y6_VHLMKfhPu-xmE_Wi46oo" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "PathMates" },
       {
         name: "twitter:description",
         content: "Find someone who's already walked the path.",
       },
+      { name: "twitter:image", content: siteUrl("/og.png") },
     ],
     links: [
-      { rel: "canonical", href: "https://site-virid-eight-86.vercel.app/" },
       { rel: "stylesheet", href: appCss },
       {
         rel: "preconnect",

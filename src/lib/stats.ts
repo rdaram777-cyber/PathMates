@@ -14,6 +14,8 @@ export interface HomepageStats {
   experiences: number;
   /** Bookings that reached a paid state (status = 'paid'). */
   bookings: number;
+  /** Profiles verified by real reviews (role = 'pathmate' AND verified). */
+  verifiedMentors: number;
   /** Average of profiles.avg_rating over rated profiles, or null if none. */
   avgRating: number | null;
 }
@@ -22,18 +24,24 @@ export const getHomepageStats = createServerFn({ method: "GET" }).handler(
   async (): Promise<HomepageStats> => {
     const sb = createSupabaseClient({ useServiceRole: true });
 
-    const [mentors, experiences, paidBookings, rated] = await Promise.all([
-      sb
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "pathmate"),
-      sb.from("experiences").select("id", { count: "exact", head: true }),
-      sb
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "paid"),
-      sb.from("profiles").select("avg_rating").gt("avg_rating", 0),
-    ]);
+    const [mentors, experiences, paidBookings, verifiedMentors, rated] =
+      await Promise.all([
+        sb
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "pathmate"),
+        sb.from("experiences").select("id", { count: "exact", head: true }),
+        sb
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "paid"),
+        sb
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "pathmate")
+          .eq("verified", true),
+        sb.from("profiles").select("avg_rating").gt("avg_rating", 0),
+      ]);
 
     let avgRating: number | null = null;
     const ratings = (rated.data ?? []) as { avg_rating: number }[];
@@ -46,6 +54,7 @@ export const getHomepageStats = createServerFn({ method: "GET" }).handler(
       mentors: mentors.count ?? 0,
       experiences: experiences.count ?? 0,
       bookings: paidBookings.count ?? 0,
+      verifiedMentors: verifiedMentors.count ?? 0,
       avgRating,
     };
   },
