@@ -42,4 +42,28 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://pathmates.in/experiences/fea0fc47-9acf-4b34-99cd-0c9d5bb43e4c</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pathmates.in/experiences/87dd3eae-5646-40fa-af1a-905ca293dd21</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pathmates.in/experiences/3f45ed60-a283-4ec2-9c8f-f91d20204c7b</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pathmates.in/experiences/6960a680-5158-4982-9f8d-200e279ababc</loc>
+    <lastmod>2026-08-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>
