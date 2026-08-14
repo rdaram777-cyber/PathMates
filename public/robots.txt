@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://site-virid-eight-86.vercel.app/sitemap.xml
+Sitemap: https://pathmates.in/sitemap.xml
