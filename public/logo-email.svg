@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="120" viewBox="0 0 400 120" role="img" aria-label="PathMates">
+  <!-- Compact email header lockup (400x120, transparent — designed for light
+       email backgrounds). Rasterized to public/logo-email.png by
+       scripts/generate-brand-assets.mjs. Future Resend templates should use
+       public/logo-email.png (or this SVG) at the top of the email. -->
+  <g transform="translate(16,28) scale(1)">
+    <path
+      d="M 20 54 L 20 20 C 20 10, 44 8, 44 24 C 44 37, 38 45, 29 44"
+      fill="none" stroke="#071B3A" stroke-width="7.5"
+      stroke-linecap="round" stroke-linejoin="round"
+    />
+    <path d="M 40 33 L 23 43 L 30.2 43.2 L 34 47 Z" fill="#FF7A3D"/>
+  </g>
+  <text
+    x="94" y="79.5"
+    font-family="Inter, Arial, sans-serif"
+    font-weight="800" font-size="54"
+    fill="#071B3A"
+  >Path<tspan fill="#FF7A3D">Mates</tspan></text>
+</svg>

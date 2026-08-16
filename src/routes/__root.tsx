@@ -13,6 +13,7 @@ import { supabase } from "~/lib/supabase";
 
 import appCss from "~/styles/app.css?url";
 import { siteUrl } from "~/lib/site";
+import { LogoMark } from "~/components/LogoMark";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -208,9 +209,15 @@ function AppShell() {
               textDecoration: "none",
               color: "var(--text)",
               flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "9px",
             }}
           >
-            Path<span style={{ color: "var(--accent)" }}>Mates</span>
+            <LogoMark size={24} />
+            <span>
+              Path<span style={{ color: "var(--accent)" }}>Mates</span>
+            </span>
           </Link>
 
           <nav className="nav-links" style={{ color: "var(--muted)" }}>
@@ -570,7 +577,31 @@ function AppShell() {
         </div>
       </header>
 
-      <Outlet />
+      {authLoading ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "60vh",
+            gap: "16px",
+          }}
+        >
+          <LogoMark size={56} className="logo-pulse" />
+          <span
+            style={{
+              color: "var(--muted)",
+              fontSize: "0.95rem",
+              fontWeight: 600,
+            }}
+          >
+            PathMates
+          </span>
+        </div>
+      ) : (
+        <Outlet />
+      )}
 
       <footer
         style={{
@@ -595,7 +626,16 @@ function AppShell() {
               flexWrap: "wrap",
             }}
           >
-            <span>© 2026 PathMates. Built for real journeys.</span>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <LogoMark size={18} />
+              © 2026 PathMates. Built for real journeys.
+            </span>
             <nav
               style={{
                 display: "flex",
@@ -735,6 +775,14 @@ function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {/* Static brand links (favicon / home-screen icon / PWA manifest).
+            Rendered here in the shell, not via route head(), so they are
+            guaranteed present in the SSR document regardless of how the
+            router head-manager streams route links. */}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/png" href="/favicon-32.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <HeadContent />
         {/* Prevent FOUC for dark mode */}
         <script

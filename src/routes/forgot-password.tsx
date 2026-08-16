@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "~/lib/supabase";
+import { LogoLockup } from "~/components/LogoMark";
 
 export const Route = createFileRoute("/forgot-password")({
   component: ForgotPasswordPage,
@@ -60,6 +61,9 @@ function ForgotPasswordPage() {
           padding: "32px",
         }}
       >
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "18px" }}>
+          <LogoLockup size={26} />
+        </div>
         <h1
           style={{
             fontSize: "1.8rem",
