@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="PathMates — Real experience. Real people. Real paths.">
+  <!-- OG / social card (1200x630). Source for public/og.png.
+       Rasterized by scripts/generate-brand-assets.mjs (Inter fonts in scripts/brand-assets/fonts). -->
+  <defs>
+    <path id="p-path" d="M 20 54 L 20 20 C 20 10, 44 8, 44 24 C 44 37, 38 45, 29 44"
+      fill="none" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="arrow" d="M 40 33 L 23 43 L 30.2 43.2 L 34 47 Z"/>
+  </defs>
+
+  <rect width="1200" height="630" fill="#071B3A"/>
+
+  <!-- Subtle oversized mark watermark (bottom-right, 5% white) -->
+  <g transform="translate(985,515) scale(4.6) translate(-32,-33)">
+    <use href="#p-path" stroke="#FFFFFF" stroke-opacity="0.05"/>
+    <use href="#arrow" fill="#FFFFFF" fill-opacity="0.05"/>
+  </g>
+
+  <!-- Mark, centered -->
+  <g transform="translate(600,165) scale(2.05) translate(-32,-33)">
+    <use href="#p-path" stroke="#FFFFFF"/>
+    <use href="#arrow" fill="#FF7A3D"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="600" y="392" text-anchor="middle"
+    font-family="Inter, Arial, sans-serif" font-weight="800" font-size="96"
+    fill="#FFFFFF">Path<tspan fill="#FF7A3D">Mates</tspan></text>
+
+  <!-- Tagline -->
+  <text x="600" y="470" text-anchor="middle"
+    font-family="Inter, Arial, sans-serif" font-weight="400" font-size="34"
+    fill="#B9C6DC" letter-spacing="0.5">Real experience. Real people. Real paths.</text>
+</svg>

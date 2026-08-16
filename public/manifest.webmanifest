@@ -1,0 +1,23 @@
+{
+  "name": "PathMates",
+  "short_name": "PathMates",
+  "description": "Learn directly from people who have already done it. Book 1:1 video calls with PathMates who've walked the path before you.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#071B3A",
+  "background_color": "#071B3A",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

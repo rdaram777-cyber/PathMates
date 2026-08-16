@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { LogoMark } from "./LogoMark";
 
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
@@ -29,7 +30,7 @@ export const LoadingSpinner: FC<LoadingSpinnerProps> = ({ size = "md", className
   );
 };
 
-/** Full-page centered spinner */
+/** Full-page centered loading state — branded with the pulsing logo mark */
 export const LoadingPage: FC<{ message?: string }> = ({ message }) => (
   <div
     style={{
@@ -41,7 +42,7 @@ export const LoadingPage: FC<{ message?: string }> = ({ message }) => (
       gap: "16px",
     }}
   >
-    <LoadingSpinner size="lg" />
+    <LogoMark size={52} className="logo-pulse" />
     {message && (
       <p style={{ color: "var(--muted)", fontSize: "0.95rem" }}>{message}</p>
     )}

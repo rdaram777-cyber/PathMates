@@ -274,6 +274,21 @@
       opacity: 0.4;
     }
   }
+  /* Branded loading pulse (gentle logo-mark breathing) */
+  @keyframes brand-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.55;
+      transform: scale(0.97);
+    }
+  }
+  .logo-pulse {
+    animation: brand-pulse 1.8s ease-in-out infinite;
+  }
 
   /* FAQ accordion (details/summary, no JS deps) */
   .faq-item {

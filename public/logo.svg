@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="PathMates">
+  <!--
+    PathMates brand mark — "the path ahead".
+    A single continuous rounded stroke draws a P (stem + bowl) like a route;
+    the route's open end (bottom-left of the bowl) is closed by an orange
+    arrowhead pointing up-right toward the destination.
+    P stroke: navy #071B3A. Arrowhead: orange #FF7A3D (fixed accent).
+    The React <LogoMark/> component uses stroke="currentColor" for the P so
+    it inherits the surrounding text color on light AND dark backgrounds.
+  -->
+  <path
+    d="M 20 54 L 20 20 C 20 10, 44 8, 44 24 C 44 37, 38 45, 29 44"
+    fill="none" stroke="#071B3A" stroke-width="7.5"
+    stroke-linecap="round" stroke-linejoin="round"
+  />
+  <path
+    d="M 40 33 L 23 43 L 30.2 43.2 L 34 47 Z"
+    fill="#FF7A3D"
+  />
+</svg>
