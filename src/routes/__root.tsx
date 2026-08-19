@@ -15,6 +15,14 @@ import appCss from "~/styles/app.css?url";
 import { siteUrl } from "~/lib/site";
 import { LogoMark } from "~/components/LogoMark";
 
+/**
+ * Google Analytics 4 measurement ID, read from the build-time env var
+ * VITE_GA_ID. When unset (e.g. local dev, no env configured) the value is
+ * `undefined` and NO analytics scripts are rendered — zero network calls.
+ * Set VITE_GA_ID in the Vercel project env to enable GA4.
+ */
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_ID as string | undefined;
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -656,6 +664,18 @@ function AppShell() {
                 FAQ
               </Link>
               <Link
+                to="/privacy"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                to="/terms"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Terms
+              </Link>
+              <Link
                 to="/search"
                 search={{ q: "" }}
                 style={{ color: "inherit", textDecoration: "none" }}
@@ -783,6 +803,23 @@ function RootDocument({ children }: { children: ReactNode }) {
         <link rel="icon" type="image/png" href="/favicon-32.png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
+        {/* Google Analytics 4 — rendered only when VITE_GA_ID is set at build
+            time. Static markup in the document shell (like the brand links
+            above) so the script is present exactly once in the SSR document
+            and never re-injected on client re-renders. */}
+        {GA_MEASUREMENT_ID && (
+          <>
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config','${GA_MEASUREMENT_ID}');`,
+              }}
+            />
+          </>
+        )}
         <HeadContent />
         {/* Prevent FOUC for dark mode */}
         <script
