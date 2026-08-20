@@ -13,13 +13,16 @@ type LogoMarkProps = {
 } & Omit<SVGProps<SVGSVGElement>, "width" | "height" | "viewBox">;
 
 /**
- * PathMates brand mark — the "path/arrow" P.
+ * PathMates brand mark — a clean, bold, geometric "P".
  *
- * The P stroke is drawn as a single continuous rounded path (stem + bowl)
- * like a route; its open end is closed by the orange arrowhead pointing
- * up-right toward the destination.
+ * The P is a single solid filled silhouette (thick vertical stem + rounded
+ * bowl) with a clear rounded counter (the negative space in the bowl) cut
+ * out via the even-odd fill rule. A small orange right-pointing arrowhead
+ * sits inside the counter — the subtle "path ahead / moving forward" motif —
+ * without obscuring the letter, so the P reads clearly at favicon/navbar and
+ * large (OG) sizes.
  *
- * Theme adaptation: the P stroke uses `currentColor` so it inherits the
+ * Theme adaptation: the P body uses `currentColor` so it inherits the
  * surrounding text color (navy on light backgrounds, near-white on dark),
  * while the arrowhead stays the fixed brand orange `#FF7A3D`.
  */
@@ -36,14 +39,15 @@ export function LogoMark({ size = 24, className, style, ...rest }: LogoMarkProps
       {...rest}
     >
       <path
-        d="M 20 54 L 20 20 C 20 10, 44 8, 44 24 C 44 37, 38 45, 29 44"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={7.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M 13 57 L 13 7 L 52 7 A 6 6 0 0 1 58 13 L 58 29 A 6 6 0 0 1 52 35 L 26 35 L 26 57 Z
+          M 32 14 L 45 14 A 5 5 0 0 1 50 19 L 50 25 A 5 5 0 0 1 45 30 L 32 30 Z"
+        fill="currentColor"
+        fillRule="evenodd"
       />
-      <path d="M 40 33 L 23 43 L 30.2 43.2 L 34 47 Z" fill={BRAND_ORANGE} />
+      <path
+        d="M 38.5 18.5 L 43.5 18.5 L 43.5 15 L 48.5 20 L 43.5 25 L 43.5 21.5 L 38.5 21.5 Z"
+        fill={BRAND_ORANGE}
+      />
     </svg>
   );
 }
