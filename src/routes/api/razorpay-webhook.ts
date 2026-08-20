@@ -3,6 +3,7 @@ import { createSupabaseClient } from "~/db";
 import { verifyRazorpayWebhookSignature } from "~/lib/razorpay";
 import { createNotification } from "~/lib/notifications";
 import { formatAmountCents } from "~/lib/currency";
+import { sendBookingEmails } from "~/lib/email";
 
 /**
  * Razorpay webhook endpoint.
@@ -152,6 +153,16 @@ export const Route = createFileRoute("/api/razorpay-webhook")({
             });
           } catch {
             // Don't fail the webhook if a notification fails.
+          }
+
+          // Transactional email — booking confirmation (Explorer) + new-booking
+          // notification (PathMate). Non-fatal: sendBookingEmails never throws,
+          // and this guard guarantees the webhook still acks 200 even if
+          // RESEND_API_KEY is unset or a send fails. Booking is already paid.
+          try {
+            await sendBookingEmails({ sb, booking });
+          } catch {
+            // Don't fail the webhook if email sending fails.
           }
 
           return Response.json({ received: true });
