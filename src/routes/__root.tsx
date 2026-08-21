@@ -800,7 +800,14 @@ function RootDocument({ children }: { children: ReactNode }) {
             guaranteed present in the SSR document regardless of how the
             router head-manager streams route links. */}
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <link rel="icon" type="image/png" href="/favicon-32.png" />
+        {/* Classic multi-size ICO (16/32/48) for crawlers/browsers that
+            request /favicon.ico directly or prefer ICO. */}
+        <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+        {/* Google search-result favicon: PNG must be a multiple of 48px.
+            48px (required) and 96px (retina) both qualify. */}
+        <link rel="icon" type="image/png" href="/favicon-48.png" sizes="48x48" />
+        <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96" />
+        <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
         {/* Google Analytics 4 — rendered only when VITE_GA_ID is set at build

@@ -19,6 +19,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { writeIco } from "./brand-assets/write-ico.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -51,12 +52,41 @@ async function rasterize(input, output, { width, height }) {
   console.log(`  ${output} (${meta.width}x${meta.height})`);
 }
 
+/** Rasterize the favicon mark to a PNG buffer at the given size. */
+async function faviconBuffer(width, height) {
+  const inputSvg = join(publicDir, "favicon.svg");
+  return await sharp(inputSvg).resize(width, height).png().toBuffer();
+}
+
+/**
+ * Build a classic multi-size favicon.ico (16/32/48).
+ *
+ * sharp cannot emit .ico, so we rasterize the mark to per-size PNG buffers
+ * and pack them into a PNG-embedded ICO (valid per spec and parsed by every
+ * modern browser + crawler). Any browser that requests /favicon.ico directly
+ * gets a crisp P at whichever size it picks.
+ */
+async function writeFaviconIco() {
+  const sizes = [16, 32, 48];
+  const pngs = [];
+  for (const s of sizes) {
+    pngs.push({ width: s, height: s, data: await faviconBuffer(s, s) });
+  }
+  writeIco(pngs, join(publicDir, "favicon.ico"));
+  console.log(`  favicon.ico (${sizes.join("/")} multi-size, ICO)`);
+}
+
 async function main() {
   registerFonts();
   console.log("Rasterizing brand assets…");
 
   // App icon / favicon family — navy rounded square, white P, orange arrow.
+  await rasterize("favicon.svg", "favicon-16.png", { width: 16, height: 16 });
   await rasterize("favicon.svg", "favicon-32.png", { width: 32, height: 32 });
+  // Google-friendly sizes: multiples of 48 (48/96) for search-result favicons.
+  await rasterize("favicon.svg", "favicon-48.png", { width: 48, height: 48 });
+  await rasterize("favicon.svg", "favicon-96.png", { width: 96, height: 96 });
+  await writeFaviconIco();
   await rasterize("favicon.svg", "apple-touch-icon.png", { width: 180, height: 180 });
   await rasterize("favicon.svg", "icon-192.png", { width: 192, height: 192 });
   await rasterize("favicon.svg", "icon-512.png", { width: 512, height: 512 });
