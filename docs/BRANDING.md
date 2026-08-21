@@ -1,8 +1,11 @@
 # PathMates Brand Assets
 
 Official brand identity and the assets that carry it. Ratified direction:
-a minimal **"P" mark built from a path with an arrow** — the letter P whose
-stroke is a route that ends in an arrowhead ("the path ahead").
+a clean, bold, **geometric "P" mark** — a solid navy P (thick stem + rounded
+bowl) with a small orange right-pointing arrowhead nested inside its counter
+(the letter's negative space). The arrowhead is the subtle "path ahead /
+moving forward" motif: it reads instantly as a P at both favicon and OG
+sizes, with the path motif woven in without obscuring the letter.
 
 ## Colors
 
