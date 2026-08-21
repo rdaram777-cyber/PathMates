@@ -36,7 +36,11 @@ SVG text rendering). Commit the regenerated PNGs.
 
 | Asset | Size | Use |
 | --- | --- | --- |
+| `favicon-16.png` | 16×16 | smallest PNG favicon (ICO source) |
 | `favicon-32.png` | 32×32 | PNG favicon fallback |
+| `favicon-48.png` | 48×48 | **Google-compliant PNG favicon** (multiple of 48px) |
+| `favicon-96.png` | 96×96 | Google-compliant reticle/retina PNG favicon (multiple of 48px) |
+| `favicon.ico` | 16/32/48 multi-size | classic ICO favicon (PNG-embedded) |
 | `apple-touch-icon.png` | 180×180 | iOS home screen |
 | `icon-192.png` / `icon-512.png` | 192 / 512 | PWA manifest icons |
 | `og.png` (+ `og.svg` source) | 1200×630 | Social share card |
@@ -57,5 +61,9 @@ editable source.
 - Auth pages (login / signup / forgot-password): centered `LogoLockup`.
 - Loading states (auth + `LoadingPage`): pulsing `LogoMark` (`.logo-pulse`).
 - Footer: small `LogoMark` next to the copyright.
-- `head()`: favicon.svg + favicon-32.png + apple-touch-icon + manifest links;
-  `og:image`/`twitter:image` continue to point at `/og.png` (file replaced).
+- `head()`: favicon.svg + favicon.ico (16/32/48) + favicon-48.png + favicon-96.png
+  + favicon-32.png + apple-touch-icon + manifest links; `og:image`/`twitter:image`
+  continue to point at `/og.png` (file replaced).
+- The 48px (and 96px) PNG favicons satisfy Google's search-result requirement
+  of a favicon that is a multiple of 48px in both dimensions, so the P icon
+  can appear next to pathmates.in in Google results.
